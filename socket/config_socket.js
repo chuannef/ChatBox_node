@@ -15,6 +15,7 @@ export function runningSocket(server) {
 
     socket.on('chat message', (msg) => {
       console.log(msg);
+      io.emit('chat message', msg);
     })
 
   });
