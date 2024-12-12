@@ -1,5 +1,6 @@
 import {createServer} from 'http';
 import {runningSocket} from '../socket/config_socket.js';
+import debug from 'debug';
 
 export function configServer(app) {
   /**
