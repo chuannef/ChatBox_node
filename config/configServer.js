@@ -1,5 +1,5 @@
-// import {Server} from 'socket.io';
 import {createServer} from 'http';
+import {runningSocket} from '../socket/config_socket.js';
 
 export function configServer(app) {
   /**
@@ -10,14 +10,11 @@ export function configServer(app) {
 
   const server = createServer(app);
 
-  // const io = new Server(server, {
-  //   connectionStateRecovery: {},
-  //   adapter: createAdapter(),
-  // });
-
   server.listen(port);
   server.on('error', onError);
   server.on('listening', onListening);
+
+  runningSocket(server);
 
   function normalizePort(val) {
     const port = parseInt(val, 10);
