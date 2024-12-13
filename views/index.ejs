@@ -5,8 +5,16 @@
     <link rel='stylesheet' href='/stylesheets/style.css' />
   </head>
   <body>
-    <!-- <h1><%= title %></h1> -->
-    <!-- <p>Welcome to <%= title %></p> -->
+    <div>
+      <% if (locals.username) { %>
+        Welcome <%= username %>
+      <% }%>
+      <br>
+      <% if (locals.user_id) { %>
+        <i> Here is your id <%= user_id %> </i>
+      <% }%>
+
+    </div>
 
     <ul id="messages"></ul>
     <form id="form" action="">
