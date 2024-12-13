@@ -7,6 +7,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { configServer } from './config/configServer.js';
 import { connectMongodb } from './config/config_mongodb.js';
+import session from 'express-session';
+import flash from 'connect-flash';
 
 import indexRouter from './routes/index.js';
 import usersRouter from './routes/users.js';
@@ -18,6 +20,17 @@ connectMongodb();
 
 // view engine setup
 app.set('views', join(__dirname, 'views'));
+
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    maxAge: 24*60*60*1000 // 24h
+  }
+}));
+app.use(flash());
 
 app.set('view engine', 'ejs');
 
