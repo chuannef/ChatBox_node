@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+</head>
+<body>
+    <h2>Profile</h2>
+    <img src="<%= user.avatar %>" alt="Profile Picture" />
+    <div>Status: <%= user.status %></div>
+    <input type="text" id="statusInput" value="<%= user.status %>" placeholder="Update status" />
+    <button onclick="updateStatus()">Update Status</button>
+
+    <script>
+        function updateStatus() {
+            var newStatus = document.getElementById('statusInput').value;
+            fetch('/api/user/status', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Status updated successfully');
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>

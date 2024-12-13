@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with <%= friend.username %></title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io.connect();
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var messageInput = document.getElementById('messageInput');
+            var sendButton = document.getElementById('sendButton');
+
+            sendButton.addEventListener('click', function() {
+                var message = messageInput.value;
+                if (message.trim() !== '') {
+                    // socket.emit('sendMessage', { friendId: <%= friend.id %>, content: message });
+                    messageInput.value = '';
+                }
+            });
+
+            socket.on('newMessage', function (message) {
+                var messagesDiv = document.getElementById('messages');
+                var messageElement = document.createElement('div');
+                messageElement.textContent = message.content;
+                messagesDiv.appendChild(messageElement);
+            });
+        });
+    </script>
+</head>
+<body>
+    <h2>Chat with <%= friend.username %></h2>
+    <div id="messages">
+        <% messages.forEach(function(message) { %>
+            <div><%= message.content %></div>
+        <% }) %>
+    </div>
+    <input id="messageInput" type="text" placeholder="Type a message" />
+    <button id="sendButton">Send</button>
+</body>
+</html>

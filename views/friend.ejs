@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friends List</title>
+</head>
+<body>
+    <h2>Your Friends</h2>
+    <ul>
+        <% friends.forEach(function(friend) { %>
+            <li>
+                <a href="/chat/<%= friend.id %>"><%= friend.username %></a>
+            </li>
+        <% }) %>
+    </ul>
+</body>
+</html>

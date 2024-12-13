@@ -5,6 +5,8 @@ import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
 import { configServer } from './config/configServer.js';
 import { connectMongodb } from './config/config_mongodb.js';
 import session from 'express-session';
@@ -12,6 +14,8 @@ import flash from 'connect-flash';
 
 import indexRouter from './routes/index.js';
 import usersRouter from './routes/users.js';
+
+dotenv.config(); // Load environment variables
 
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -22,12 +26,12 @@ connectMongodb();
 app.set('views', join(__dirname, 'views'));
 
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET, // Ensure SESSION_SECRET is set in your .env file
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    maxAge: 24*60*60*1000 // 24h
+    maxAge: 24 * 60 * 60 * 1000 // 24h
   }
 }));
 app.use(flash());
