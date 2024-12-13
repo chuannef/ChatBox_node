@@ -17,6 +17,7 @@
   "devDependencies": {
     "@socket.io/cluster-adapter": "^0.2.2",
     "bcrypt": "^5.1.1",
+    "connect-flash": "^0.1.1",
     "dotenv": "^16.4.7",
     "express-session": "^1.18.1",
     "express-validator": "^7.2.0",
