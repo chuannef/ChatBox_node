@@ -8,7 +8,14 @@ class UsersController {
    * User login form
    */
   static async login(req, res) {
-    return res.render('login', { message: '' });
+    const successMessage = req.flash('success')[0];
+    const errorMessage = req.flash('error')[0];
+    const loginRequired = req.flash('loginRequired')[0]
+
+    return res.render('login', { 
+      message: successMessage || errorMessage || loginRequired, 
+      success: !!successMessage, // convert message to true/false
+    });
   }
 
   /**
@@ -24,7 +31,7 @@ class UsersController {
   static async registerRequest(req, res) {
     const { username, password } = req.body;
     if (!username || !password) {
-      return res.status(400).render('login', { message: 'username and password are required' });
+      return res.status(400).render('register', { message: 'username and password are required' });
     }
     // Check if the username is already taken
     const existingUser = await User.findOne({
@@ -47,7 +54,9 @@ class UsersController {
 
     try {
       await newUser.save();
-      return res.status(201).render('login', { message: 'Registered successfully' });
+      req.flash('success', 'Registration successful! Please log in');
+      return res.redirect('/users/login');
+      // return res.status(201).render('login', { message: 'Registered successfully', success: true });
     } catch (e) {
       // Take a look at ../middleware/register_validation.js
       if (e.name == 'ValidationError') {
@@ -56,7 +65,7 @@ class UsersController {
       }
 
       return res.staus(500).render('register', 
-        { mesasge: 'Internal Server Error, please try again', oldInput: { username: req.body.username } });
+        { message: 'Internal Server Error, please try again', oldInput: { username: req.body.username } });
     }
   }
 
@@ -71,7 +80,7 @@ class UsersController {
       }
       const user = await User.findOne({ username });
       // There is no user in the database
-      if (!user) return res.status(401).render('login', { message: 'User not found' });
+      if (!user) return res.status(401).render('login', { message: 'Invalid credentials' });
       // Compare plain password and hashed password
       const decodedPassword = await bcrypt.compare(password, user.password);
       // If password is correct
@@ -89,7 +98,10 @@ class UsersController {
             sameSite: 'strict'
           });
           // user's information is correct and token generates without error
-          return res.render('index', { username: user.username, user_id: user._id });
+          // return res.render('index', { username: user.username, user_id: user._id });
+          // req.flash('username', user.username);
+          // req.flash('user_id', user._id);
+          return res.redirect('/');
         } catch (e) {
           // JWT error
           console.log(e); // Trace the errors 
@@ -107,9 +119,7 @@ class UsersController {
         message: 'An error occured during login',
         oldInput: { username: req.body.username }
       });
-
     }
-
   }
 }
 
