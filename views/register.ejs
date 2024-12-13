@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Register</title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <h1>Register</h1>
+    <form action="/users/register" method="POST">
+      <div>
+        <label for="username">Username:</label>
+        <input type="text" 
+               id="username" 
+               name="username" 
+               value="<%= locals.oldInput ? oldInput.username : '' %>"
+               required
+               minlength="3"
+               maxlength="30"
+               pattern="[a-zA-Z0-9_]+" >
+      </div>
+      <div>
+        <label for="password">Password:</label>
+        <input type="password" 
+               id="password" 
+               name="password"
+               required
+               minlength="6" >
+      </div>
+        <% if (locals.message) { %>
+          <%= message %>
+        <div class="<%= locals.success ? 'success-message' : 'error-message' %>">
+          <%= message %>
+        </div>
+        <% } %>
+        <button type="submit">Register</button>
+    </form>
+  </body>
+
+</html>

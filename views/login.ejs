@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Login</title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <h1>Login</h1>
+    <form action="/users/login" method="POST">
+      <div>
+        <label for="username">Username:</label>
+        <input type="text" 
+               id="username" 
+               name="username" 
+               value="<%= locals.oldInput ? oldInput.username : '' %>" >
+      </div>
+      <div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password">
+      </div>
+      <% if (locals.message) { %>
+      <div class="error-message">
+        <%= message %>
+      </div>
+      <% } %>
+      <button type="submit">Login</button>
+    </form>
+  </body>
+
+</html>
