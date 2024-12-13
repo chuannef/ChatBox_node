@@ -1,9 +1,11 @@
 import {Router} from 'express';
+import { verifyLogin } from '../middleware/check_login.js';
+
+import IndexController from '../controller/index_controller.js';
+
 let router = Router();
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Chinhcom' });
-});
+router.get('/', verifyLogin, IndexController.index);
 
 export default router;
