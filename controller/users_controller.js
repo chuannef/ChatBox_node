@@ -12,32 +12,54 @@ class UsersController {
   }
 
   /**
-   * User requests login
+   * User registration form
    */
-  static async loginRequest(req, res) {
+  static async register(req, res) {
+    return res.render('register', {message: ''});
+  }
+
+  /**
+   * User requests registration
+   */
+  static async registerRequest(req, res) {
     const { username, password } = req.body;
     if (!username || !password) {
       return res.status(400).render('login', { message: 'username and password are required' });
     }
+    // Check if the username is already taken
+    const existingUser = await User.findOne({
+      username: { $regex: new RegExp(`^${username}$`, 'i') } // search for case insensitive
+    }); 
 
-    const user = await User.findOne({ username });
-    // There is no user in the database
-    if (!user) return res.status(401).render('login', { message: 'User not found' });
-    // Compare plain password and hashed password
-    const decodedPassword = await bcrypt.compare(password, user.password);
-    // If password is correct
-    if (decodedPassword) {
-      const payload = {
-        user_id: user._id,
-        username: user.username
-      };
-      try {
-        // Generate token, return the JSON web token string. Expires in 1 hour
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { 'expiresIn': '1h', algorithm: 'HS256' });
-        res.cookie('jwt', token, {
-          httpOnly: true, 
-          maxAge: 3600000,
-          sameSite: 'strict'
+    if (existingUser) return res.status(409).render('register', 
+      { message: 'Username is already taken, please type another name', oldInput: { username } }
+    );
+
+    const salt = await bcrypt.genSalt(12); // The salt to be used in encryption
+    // Hashed password
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = new User({
+      username: username.toLowerCase(),
+      password: hashedPassword, // Save hashed password
+      createdAt: new Date()
+    });
+
+    try {
+      await newUser.save();
+      return res.status(201).render('login', { message: 'Registered successfully' });
+    } catch (e) {
+      // Take a look at ../middleware/register_validation.js
+      if (e.name == 'ValidationError') {
+        return res.status(400).render(
+          'register', { message: 'Invalid input data', oldInput: { username: req.body.username } });
+      }
+
+      return res.staus(500).render('register', 
+        { mesasge: 'Internal Server Error, please try again', oldInput: { username: req.body.username } });
+    }
+  }
+
   /**
    * User requests login
    */
