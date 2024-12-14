@@ -25,7 +25,7 @@ class UsersController {
     const loginRequired = req.flash('loginRequired')[0];
 
     return res.render('login', { 
-      message: successMessage || errorMessage || loginRequired, 
+      message: successMessage || errorMessage || loginRequired,
       success: !!successMessage,
     });
   }
@@ -87,9 +87,12 @@ class UsersController {
       }
 
       const user = await User.findOne({ username });
-
+      // If there is no user in the database
       if (!user) {
-        return res.status(401).render('login', { message: 'Invalid credentials' });
+        return res.status(401).render('login', { 
+          message: 'Invalid credentials', 
+          oldInput: { username: req.body.username } 
+        });
       }
 
       const decodedPassword = await bcrypt.compare(password, user.password);
@@ -98,7 +101,9 @@ class UsersController {
         const payload = { user_id: user._id, username: user.username };
 
         try {
+          // Generate token
           const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h', algorithm: 'HS256' });
+          // Setting cookie
           res.cookie('jwt', token, { httpOnly: true, maxAge: 3600000, sameSite: 'strict' });
           return res.redirect('/');
         } catch (e) {
