@@ -1,0 +1,379 @@
+/* Modern Chat Interface Styles */
+:root {
+    --primary-color: #7289da;
+    --secondary-color: #424549;
+    --background-dark: #36393f;
+    --background-darker: #2f3136;
+    --text-color: #dcddde;
+    --text-muted: #72767d;
+    --hover-color: #40444b;
+    --border-color: #40444b;
+    --online-color: #43b581;
+    --shadow-color: rgba(0, 0, 0, 0.2);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--background-dark);
+    color: var(--text-color);
+    font-family: 'Helvetica Neue', sans-serif;
+    line-height: 1.5;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+/* Sidebar Styles */
+.sidebar {
+    width: 280px;
+    background-color: var(--background-darker);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+}
+
+.user-profile {
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: var(--background-darker);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.avatar {
+    position: relative;
+}
+
+.avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.status {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--background-darker);
+}
+
+.status.online {
+    background-color: var(--online-color);
+}
+
+.user-info {
+    flex: 1;
+}
+
+.user-info h3 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.status-text {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.settings-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 8px;
+}
+
+.search-box {
+    padding: 16px;
+    position: relative;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 8px 32px;
+    border-radius: 4px;
+    border: none;
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.channels {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.channels-header {
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.add-channel-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.channel {
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.channel:hover {
+    background-color: var(--hover-color);
+}
+
+.channel.active {
+    background-color: var(--hover-color);
+}
+
+.channel-icon {
+    color: var(--text-muted);
+    font-size: 20px;
+}
+
+.channel-info {
+    flex: 1;
+}
+
+.channel-info h4 {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.channel-info p {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.channel-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.time {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.unread {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+/* Chat Area Styles */
+.chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-header {
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chat-header-info h2 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.chat-header-info p {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.chat-header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.chat-header-actions button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 8px;
+}
+
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.date-divider {
+    text-align: center;
+    margin: 24px 0;
+    position: relative;
+}
+
+.date-divider span {
+    background-color: var(--background-dark);
+    padding: 0 16px;
+    color: var(--text-muted);
+    font-size: 12px;
+    position: relative;
+    z-index: 1;
+}
+
+.date-divider::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background-color: var(--border-color);
+}
+
+.message {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.message-content {
+    flex: 1;
+}
+
+.message-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.message-header h4 {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.message-header .time {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.input-area {
+    padding: 16px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    border-top: 1px solid var(--border-color);
+}
+
+.attach-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 8px;
+}
+
+.input-wrapper {
+    flex: 1;
+    position: relative;
+    background-color: var(--secondary-color);
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.input-wrapper input {
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 14px;
+    padding: 4px;
+    padding-right: 80px;
+}
+
+.input-actions {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 8px;
+}
+
+.input-actions button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.send-btn {
+    background: var(--primary-color);
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.send-btn:hover {
+    background-color: #5b73c7;
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background-darker);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--secondary-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-hover);
+}

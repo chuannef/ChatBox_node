@@ -1,61 +1,123 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Welcome and welcome</title>
-    <link rel="stylesheet" href="/stylesheets/style.css" />
-  </head>
-  <body>
-    <div>
-      <% if (locals.username) { %>
-        Welcome <%= username %>
-      <% } %>
-      <br>
-      <% if (locals.user_id) { %>
-        <i> Here is your id <%= user_id %> </i>
-      <% } %>
-      <br>
-      <a href="/users/logout">
-        Logout
-      </a>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Chat Interface</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/stylesheets/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="user-profile">
+                <div class="avatar">
+                    <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar">
+                    <span class="status online"></span>
+                </div>
+                <div class="user-info">
+                    <h3>ducchinhpro123</h3>
+                    <p class="status-text">Online</p>
+                </div>
+                <button class="settings-btn">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search channels...">
+            </div>
+
+            <div class="channels">
+                <div class="channels-header">
+                    <h4>Channels</h4>
+                    <button class="add-channel-btn">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div class="channel-list">
+                    <div class="channel active">
+                        <div class="channel-icon">#</div>
+                        <div class="channel-info">
+                            <h4>general</h4>
+                            <p>Latest message here...</p>
+                        </div>
+                        <div class="channel-meta">
+                            <span class="time">12:30</span>
+                            <span class="unread">3</span>
+                        </div>
+                    </div>
+
+                    <!-- More channels -->
+                    <div class="channel">
+                        <div class="channel-icon">#</div>
+                        <div class="channel-info">
+                            <h4>random</h4>
+                            <p>Latest message here...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-area">
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <h2>#general</h2>
+                    <p>32 members</p>
+                </div>
+                <div class="chat-header-actions">
+                    <button><i class="fas fa-user-plus"></i></button>
+                    <button><i class="fas fa-info-circle"></i></button>
+                </div>
+            </div>
+
+            <div class="messages">
+                <div class="date-divider">
+                    <span>Today</span>
+                </div>
+
+                <div class="message">
+                    <img src="https://ui-avatars.com/api/?name=user1" alt="avatar" class="message-avatar">
+                    <div class="message-content">
+                        <div class="message-header">
+                            <h4>User1</h4>
+                            <span class="time">12:30 PM</span>
+                        </div>
+                        <p>Hey everyone! 👋</p>
+                    </div>
+                </div>
+
+                <div class="message own-message">
+                    <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar" class="message-avatar">
+                    <div class="message-content">
+                        <div class="message-header">
+                            <h4>You</h4>
+                            <span class="time">12:31 PM</span>
+                        </div>
+                        <p>Hello! How's everyone doing?</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <button class="attach-btn">
+                    <i class="fas fa-plus-circle"></i>
+                </button>
+                <div class="input-wrapper">
+                    <input type="text" placeholder="Message #general">
+                    <div class="input-actions">
+                        <button><i class="far fa-smile"></i></button>
+                        <button><i class="fas fa-paperclip"></i></button>
+                    </div>
+                </div>
+                <button class="send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
     </div>
-
-    <ul id="messages"></ul>
-
-    <form id="form" action="">
-      <input id="input" autocomplete="off" /><button>Send</button>
-      <button id="toggle-btn" type="button">Disconnect</button>
-    </form>
-
-  </body>
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    const form = document.getElementById('form');
-    const input = document.getElementById('input');
-    const msgs = document.getElementById('messages');
-    const toggleBtn = document.getElementById('toggle-btn');
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      if (input.value) {
-        // Gửi tin nhắn đến server
-        socket.emit('chat message', input.value);
-        input.value = '';
-      }
-    });
-
-    // Nhận tin nhắn từ server và hiển thị
-    socket.on('chat message', (msg) => {
-      const li = document.createElement('li');
-      li.textContent = msg;
-      msgs.appendChild(li);
-      msgs.scrollTop = msgs.scrollHeight; // Cuộn xuống cuối danh sách
-    });
-
-    // Nút ngắt kết nối
-    toggleBtn.addEventListener('click', () => {
-      socket.disconnect();
-      alert('Disconnected from the server');
-    });
-  </script>
+</body>
 </html>

@@ -1,0 +1,62 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Welcome and welcome</title>
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+  </head>
+  <body>
+    <div>
+      <% if (locals.username) { %>
+        Welcome <%= username %>
+      <% } %>
+      <br>
+      <% if (locals.user_id) { %>
+        <i> Here is your id <%= user_id %> </i>
+      <% } %>
+      <br>
+      <a href="/users/logout">
+        Logout
+      </a>
+    </div>
+
+    <ul id="messages"></ul>
+
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button>Send</button>
+      <button id="toggle-btn" type="button">Disconnect</button>
+    </form>
+
+  </body>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const form = document.getElementById('form');
+    const input = document.getElementById('input');
+    const msgs = document.getElementById('messages');
+    const toggleBtn = document.getElementById('toggle-btn');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (input.value) {
+        // Gửi tin nhắn đến server
+        socket.emit('chat message', input.value);
+        input.value = '';
+      }
+    });
+
+    // Nhận tin nhắn từ server và hiển thị
+    socket.on('chat message', (msg) => {
+      const li = document.createElement('li');
+      li.textContent = msg;
+      msgs.appendChild(li);
+      msgs.scrollTop = msgs.scrollHeight; // Cuộn xuống cuối danh sách
+    });
+
+    // Nút ngắt kết nối
+    toggleBtn.addEventListener('click', () => {
+      socket.disconnect();
+      alert('Disconnected from the server');
+    });
+  </script>
+</html>
