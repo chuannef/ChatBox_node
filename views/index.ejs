@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="current-user" content="<%= username %>">
+
     <title>Web Chat Interface</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/stylesheets/styles.css">
@@ -118,49 +120,141 @@
                 <div class="date-divider">
                     <span>Today</span>
                 </div>
-
-                <div class="message">
-                    <img src="https://ui-avatars.com/api/?name=user1" alt="avatar" class="message-avatar">
-                    <div class="message-content">
-                        <div class="message-header">
-                            <h4>User1</h4>
-                            <span class="time">12:30 PM</span>
-                        </div>
-                        <p>Hey everyone! 👋</p>
-                    </div>
-                </div>
-
-                <div class="message own-message">
-                    <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar" class="message-avatar">
-                    <div class="message-content">
-                        <div class="message-header">
-                            <h4>You</h4>
-                            <span class="time">12:31 PM</span>
-                        </div>
-                        <p>Hello! How's everyone doing?</p>
-                    </div>
-                </div>
+                <!-- <div class="message own-message"> -->
+                <!--     <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar" class="message-avatar"> -->
+                <!--     <div class="message-content"> -->
+                <!--         <div class="message-header"> -->
+                <!--             <h4>You</h4> -->
+                <!--             <span class="time">12:31 PM</span> -->
+                <!--         </div> -->
+                <!--         <p>Hello! How's everyone doing?</p> -->
+                <!--     </div> -->
+                <!-- </div> -->
             </div>
 
             <div class="input-area">
                 <button class="attach-btn">
                     <i class="fas fa-plus-circle"></i>
                 </button>
-                <div class="input-wrapper">
-                    <input type="text" placeholder="Message #general">
+                <form class="input-wrapper" id="msgForm">
+                    <input id="msgInput" type="text" placeholder="Message #general">
                     <div class="input-actions">
-                        <button><i class="far fa-smile"></i></button>
-                        <button><i class="fas fa-paperclip"></i></button>
+                        <button type="button"><i class="far fa-smile"></i></button>
+                        <button type="button"><i class="fas fa-paperclip"></i></button>
                     </div>
-                </div>
-                <button class="send-btn">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
+                    <button class="send-btn" type="submit">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </body>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        function getWSToken() {
+            const cookies = document.cookie.split(';')
+                .map(cookie => cookie.trim())
+                .reduce((acc, curr) => {
+                    const [key, value] = curr.split('=');
+                    acc[key] = value;
+                    return acc;
+                }, {});
 
+            return cookies['wsToken'];
+        }
+        const token = getWSToken();
+        const socket = io({
+            ackTimeout: 10000,
+            retries: 3,
+            auth: { token }
+        });
+
+        socket.on('connect', () => {
+            console.log(`${socket} connected successfully`);
+        });
+
+        const msgInput = document.getElementById('msgInput');
+        const msgForm = document.getElementById('msgForm');
+        const messagesContainer = document.querySelector('.messages');
+
+        msgForm.removeEventListener('submit', handleSubmit);
+
+        function handleSubmit(e) {
+            e.preventDefault();
+            if (msgInput.value) {
+                // Send message to server
+                socket.emit('chat', msgInput.value);
+                msgInput.value = '';
+                msgInput.focus();
+            }
+        }
+        msgForm.addEventListener('submit', handleSubmit);
+
+        // Handle incomming message
+        /*
+        io.emit('message', {
+          content: msg,
+          username: socket.user.username,
+          userId: socket.user._id,
+          timestamp: new Date()
+        });
+         */
+        socket.on('message', (msg) => {
+            appendToChatMessages(msg);
+        });
+        
+        socket.on('disconnect', (msg) => {
+            console.log('Disconnected: ', msg);
+        })
+
+        function appendToChatMessages(msg) {
+            const currentUser = 'chinhcom';
+            <!-- const currentUser = window.CURRENT_USER; -->
+            const CURRENT_USER = '<%= username %>';
+            console.log(CURRENT_USER);
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message';
+
+            const msgDate = new Date(msg.timestamp);
+            const today = new Date();
+
+            if (!document.querySelector('.date-divider')) {
+                const dateDivider = document.createElement('div');
+                dateDivider.className = 'date-divider';
+                dateDivider.innerHTML = `<span>${isToday(msgDate) ? 'Today' : msgDate.toLocaleString()}</span>`
+                messagesContainer.appendChild(dateDivider);
+            }
+
+            const isOwnMsg = msg.username === CURRENT_USER;
+            msgDiv.className = `message ${isOwnMsg ? 'own-message' : ''}`;
+
+            msgDiv.innerHTML = `
+                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(msg.username)}" alt="avatar" class="message-avatar">
+                <div class="message-content">
+                    <div class="message-header">
+                        <h4>${isOwnMsg ? 'You' : msg.username}</h4>
+                        <span class="time">${msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <p>${msg.content}</p>
+                </div>
+            `;
+
+            messagesContainer.appendChild(msgDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function isToday(date) {
+            const today = new Date();
+            return date.getDate() === today.getDay() 
+            && date.getMonth() === today.getMonth()
+            && date.getFullYear() === today.getFullYear();
+        }
+    });
+
+</script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const settingsButton = document.getElementById('settingsBtn');
