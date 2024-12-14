@@ -1,3 +1,5 @@
+import mongoose, { Schema  } from "mongoose";
+
 const channelSchema = new Schema({
   name: {
     type: String,
