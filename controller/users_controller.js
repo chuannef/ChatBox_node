@@ -8,10 +8,8 @@ class UsersController {
       const cookie = req.cookies.jwt;
       if (cookie) { res.clearCookie('jwt'); }
 
-      if (req.session) { 
-        req.session.destroy(); 
-        return res.redirect('/users/login');
-      }
+      req.flash('message', 'Successfully logged out');
+      return res.redirect('/users/login');
     } catch (e) {
       console.log(e);
       req.flash('message', 'An error occur during logout');
@@ -31,6 +29,10 @@ class UsersController {
   }
 
   static async register(req, res) {
+    // Check if user already logged in
+    if (req.cookies || req.cookies.jwt) {
+      return res.redirect('/');
+    }
     return res.render('register', { message: '' });
   }
 
