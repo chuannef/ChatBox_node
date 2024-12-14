@@ -17,7 +17,7 @@ router.get('/', function(req, res, next) {
 router.get('/login', checkAuth, UsersController.login);
 router.post('/login', loginValidation, UsersController.loginRequest);
 
-router.get('/register', checkAuth, UsersController.register);
+router.get('/register', UsersController.register);
 router.post('/register', registerValidation, UsersController.registerRequest);
 
 router.get('/logout', verifyLogin, UsersController.logout);
