@@ -6,11 +6,11 @@
   </head>
   <body>
     <div>
-      <% if (username) { %>
+      <% if (locals.username) { %>
         Welcome <%= username %>
       <% } %>
       <br>
-      <% if (user_id) { %>
+      <% if (locals.user_id) { %>
         <i> Here is your id <%= user_id %> </i>
       <% } %>
     </div>
