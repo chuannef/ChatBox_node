@@ -30,9 +30,9 @@ class UsersController {
 
   static async register(req, res) {
     // Check if user already logged in
-    if (req.cookies || req.cookies.jwt) {
-      return res.redirect('/');
-    }
+    // if (req.cookies || req.cookies.jwt) {
+    //   return res.redirect('/');
+    // }
     return res.render('register', { message: '' });
   }
 
@@ -100,13 +100,29 @@ class UsersController {
       const decodedPassword = await bcrypt.compare(password, user.password);
 
       if (decodedPassword) {
-        const payload = { user_id: user._id, username: user.username };
+        const payload = { 
+          user_id: user._id, 
+          username: user.username,
+        };
 
         try {
           // Generate token
           const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h', algorithm: 'HS256' });
           // Setting cookie
-          res.cookie('jwt', token, { httpOnly: true, maxAge: 3600000, sameSite: 'strict' });
+          res.cookie('jwt', token, {
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 3600000, 
+            sameSite: 'strict' 
+          });
+
+          res.cookie('wsToken', token, {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 3600000
+          });
+
           return res.redirect('/');
         } catch (e) {
           console.log(e);
