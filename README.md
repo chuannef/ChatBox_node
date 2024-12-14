@@ -6,7 +6,9 @@
 
 <img src="2.jpg" width="500" alt="Second Image">
 
-<img src="3.png" width="500" alt="Third Image">## Quick start
+<img src="3.png" width="500" alt="Third Image">
+
+## Quick start
 
 ```json
   "scripts": {
