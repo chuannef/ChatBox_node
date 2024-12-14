@@ -13,9 +13,14 @@
       <% if (locals.user_id) { %>
         <i> Here is your id <%= user_id %> </i>
       <% } %>
+      <br>
+      <a href="/users/logout">
+        Logout
+      </a>
     </div>
 
     <ul id="messages"></ul>
+
     <form id="form" action="">
       <input id="input" autocomplete="off" /><button>Send</button>
       <button id="toggle-btn" type="button">Disconnect</button>
