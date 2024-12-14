@@ -168,6 +168,8 @@
         const socket = io({
             ackTimeout: 10000,
             retries: 3,
+            transports: ['websocket'],
+            upgrade: false,
             auth: { token }
         });
 
@@ -185,14 +187,16 @@
             e.preventDefault();
             if (msgInput.value) {
                 // Send message to server
-                socket.emit('chat', msgInput.value);
-                msgInput.value = '';
-                msgInput.focus();
+                socket.emit('chat', msgInput.value, (ack) => {
+                    msgInput.disabled = false;
+                    msgInput.value = '';
+                    msgInput.focus();
+                });
             }
         }
         msgForm.addEventListener('submit', handleSubmit);
 
-        // Handle incomming message
+        // Handle incomming message. Here is how msg contains
         /*
         io.emit('message', {
           content: msg,
