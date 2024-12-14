@@ -53,7 +53,7 @@ export function initializeSocket(server) {
     // TODO: implement user online status 
     // await User.findByIdAndUpdate(socket.user._id);
 
-    socket.on('chat', (msg) => {
+    socket.on('chat', (msg, callback) => {
       try {
         console.log(`Received message from: ${socket.user.username}: ${msg}`);
         // Return message to client
@@ -63,10 +63,17 @@ export function initializeSocket(server) {
           userId: socket.user._id,
           timestamp: new Date()
         });
+        // Back to the client. Prevent delay and emit multiple times
+        if (typeof callback === 'function') {
+          callback({ status: 'ok' });
+        }
 
       } catch (e) {
         console.error(e);
-        socket.emit('error', 'Failed to process message');
+        // socket.emit('error', 'Failed to process message');
+        if (typeof callback === 'function') {
+          callback({ status: 'error', message: error.message });
+        }
       }
       // console.log(msg);
       // io.emit('chat', msg);
