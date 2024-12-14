@@ -18,5 +18,18 @@ export const registerValidation = [
   .isLength({ min: 5 })
   .withMessage('password must be at least 5 characters long'),
 
-  validationResult
+  // validationResult
+
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.render('register', {
+        message: errors.array()[0].msg,
+        oldInput: {
+          username: req.body.username
+        }
+      });
+    }
+    next();
+  }
 ]
