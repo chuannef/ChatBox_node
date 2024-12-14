@@ -3,6 +3,8 @@ import UsersController from '../controller/users_controller.js';
 import { loginValidation } from '../middleware/login_validation.js';
 import { registerValidation } from '../middleware/register_validation.js';
 
+import { verifyLogin } from '../middleware/check_login.js';
+
 let router = Router();
 
 
@@ -17,6 +19,6 @@ router.post('/login', loginValidation, UsersController.loginRequest);
 router.get('/register', UsersController.register);
 router.post('/register', registerValidation, UsersController.registerRequest);
 
-
+router.get('/logout', verifyLogin, UsersController.logout);
 
 export default router;

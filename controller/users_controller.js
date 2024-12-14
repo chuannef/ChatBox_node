@@ -3,6 +3,22 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/user.js';
 
 class UsersController {
+  static async logout(req, res) {
+    try {
+      const cookie = req.cookies.jwt;
+      if (cookie) { res.clearCookie('jwt'); }
+
+      if (req.session) { 
+        req.session.destroy(); 
+        return res.redirect('/users/login');
+      }
+    } catch (e) {
+      console.log(e);
+      req.flash('message', 'An error occur during logout');
+      return res.redirect('/users/login');
+    }
+  }
+
   static async login(req, res) {
     const successMessage = req.flash('success')[0];
     const errorMessage = req.flash('error')[0];
