@@ -2,11 +2,11 @@
 
 ### Our Design about this app
 
-<img src="1.jpg" width="300" alt="First Image">
+<img src="1.jpg" width="500" alt="First Image">
 
-<img src="2.jpg" width="300" alt="Second Image">
+<img src="2.jpg" width="500" alt="Second Image">
 
-<img src="3.png" width="300" alt="Third Image">## Quick start
+<img src="3.png" width="500" alt="Third Image">## Quick start
 
 ```json
   "scripts": {
