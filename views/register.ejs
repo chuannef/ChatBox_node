@@ -1,124 +1,113 @@
-<!-- <!DOCTYPE html>
-<html>
-  <head>
-    <title>Register</title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-  </head>
-  <body>
-    <h1>Register</h1>
-    <form action="/users/register" method="POST">
-      <div>
-        <label for="username">Username:</label>
-        <input type="text" 
-               id="username" 
-               name="username" 
-               value="<%= locals.oldInput ? oldInput.username : '' %>"
-               required
-               minlength="3"
-               maxlength="30"
-               pattern="[a-zA-Z0-9_]+" >
-      </div>
-      <div>
-        <label for="password">Password:</label>
-        <input type="password" 
-               id="password" 
-               name="password"
-               required
-               minlength="6" >
-      </div>
-        <% if (locals.message) { %>
-          <%= message %>
-        <div class="<%= locals.success ? 'success-message' : 'error-message' %>">
-          <%= message %>
-        </div>
-        <% } %>
-        <button type="submit">Register</button>
-    </form>
-  </body>
-
-</html> -->
-<!-- <!DOCTYPE html>
-<html>
-  <head>
-    <title>Login</title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-  </head>
-  <body>
-    <h1>Login</h1>
-    <form action="/users/login" method="POST">
-      <div>
-        <label for="username">Username:</label>
-        <input type="text" 
-               id="username" 
-               name="username" 
-               value="<%= locals.oldInput ? oldInput.username : '' %>" >
-      </div>
-      <div>
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password">
-      </div>
-      <% if (locals.message) { %>
-      <div class="error-message">
-        <%= message %>
-      </div>
-      <% } %>
-      <button type="submit">Login</button>
-    </form>
-  </body>
-
-</html> -->
 <!DOCTYPE html>
-<!-- Coding By CodingNepal - www.codingnepalweb.com -->
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Glassmorphism Login Form | CodingNepal</title>
-  <link rel="stylesheet" href="/stylesheets/form.css">
-</head>
-<body>
-  <div class="wrapper">
-    <form action="/users/register" method="POST">
-      <h2>Register</h2>
-        <div class="input-field">
-        
-          <input type="text" 
-               id="username" 
-               name="username" 
-               value="<%= locals.oldInput ? oldInput.username : '' %>"
-               required
-               placeholder="Username"
-               minlength="3"
-               maxlength="30"
-               pattern="[a-zA-Z0-9_]+" >
-      </div>
-      <div class="input-field">
-      
-        <input type="password" 
-        id="password" 
-        name="password"
-        required
-        placeholder="Password"
-        minlength="6" >
-      </div>
-      <% if (locals.message) { %>
-        <%= message %>
-      <div class="<%= locals.success ? 'success-message' : 'error-message' %>">
-        <%= message %>
-      </div>
-      <% } %>
-      <div class="forget">
-        <label for="remember">
-          <input type="checkbox" id="remember">
-          <p>Remember me</p>
-        </label>
-        <a href="#">Forgot password?</a>
-      </div>
-      <button type="submit">Register</button>
-      <div class="register">
-        <p>I have an account? <a href="/users/login">Login</a></p>
-      </div>
-    </form>
-  </div>
-</body>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Register - Chat App</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <link rel="stylesheet" href="/stylesheets/register.css">
+    </head>
+    <body>
+        <div class="register-container">
+            <div class="register-header">
+                <h1>Create an Account</h1>
+                <p>Join our chat community today!</p>
+            </div>
+
+            <form action="/users/register" method="POST" id="registerForm">
+                <div class="form-group">
+                    <label for="username">USERNAME</label>
+                    <input 
+                           type="text" 
+                           id="username" 
+                           name="username" 
+                           value="<%= locals.oldInput ? oldInput.username : '' %>"
+                           required
+                           minlength="3"
+                           maxlength="30"
+                           pattern="[a-zA-Z0-9_]+"
+                           autocomplete="username"
+                           >
+                           <div class="requirements">
+                               3-30 characters, letters, numbers, and underscores only
+                           </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">PASSWORD</label>
+                    <input 
+                           type="password" 
+                           id="password" 
+                           name="password"
+                           required
+                           minlength="6"
+                           autocomplete="new-password"
+                           >
+                           <i class="fas fa-eye password-toggle" id="passwordToggle"></i>
+                           <div class="requirements">
+                               At least 6 characters
+                           </div>
+                </div>
+
+                <% if (locals.message) { %>
+                <div class="<%= locals.success ? 'success-message' : 'error-message' %>">
+                    <i class="<%= locals.success ? 'fas fa-check-circle' : 'fas fa-exclamation-circle' %>"></i>
+                    <%= message %>
+                </div>
+                <% } %>
+
+                <button type="submit" class="submit-button">Register</button>
+            </form>
+
+            <div class="login-link">
+                Already have an account? <a href="/users/login">Log In</a>
+            </div>
+        </div>
+
+        <script>
+           // Password visibility toggle
+           const passwordToggle = document.getElementById('passwordToggle');
+           const passwordInput = document.getElementById('password');
+
+           passwordToggle.addEventListener('click', function() {
+             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+             passwordInput.setAttribute('type', type);
+             this.classList.toggle('fa-eye');
+             this.classList.toggle('fa-eye-slash');
+           });
+
+           // Form validation
+           const form = document.getElementById('registerForm');
+           const usernameInput = document.getElementById('username');
+
+           form.addEventListener('submit', function(e) {
+             let isValid = true;
+
+             // Username validation
+             if (!usernameInput.value.match(/^[a-zA-Z0-9_]{3,30}$/)) {
+               isValid = false;
+             }
+
+             // Password validation
+             if (passwordInput.value.length < 6) {
+               isValid = false;
+             }
+            // Validation failed. Prevent user from submit
+             if (!isValid) {
+               e.preventDefault();
+             }
+           });
+
+           // Real-time validation feedback
+           usernameInput.addEventListener('input', function() {
+             const isValid = this.value.match(/^[a-zA-Z0-9_]{3,30}$/);
+             this.style.borderColor = isValid ? 'var(--primary-color)' : 'var(--error-color)';
+           });
+
+           passwordInput.addEventListener('input', function() {
+             const isValid = this.value.length >= 6;
+             this.style.borderColor = isValid ? 'var(--primary-color)' : 'var(--error-color)';
+           });
+        </script>
+    </body>
 </html>

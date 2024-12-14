@@ -1,75 +1,56 @@
-<!-- <!DOCTYPE html>
-<html>
-  <head>
-    <title>Login</title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-  </head>
-  <body>
-    <h1>Login</h1>
-    <form action="/users/login" method="POST">
-      <div>
-        <label for="username">Username:</label>
-        <input type="text" 
-               id="username" 
-               name="username" 
-               value="<%= locals.oldInput ? oldInput.username : '' %>" >
-      </div>
-      <div>
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password">
-      </div>
-      <% if (locals.message) { %>
-      <div class="error-message">
-        <%= message %>
-      </div>
-      <% } %>
-      <button type="submit">Login</button>
-    </form>
-  </body>
-
-</html> -->
 <!DOCTYPE html>
-<!-- Coding By CodingNepal - www.codingnepalweb.com -->
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Glassmorphism Login Form | CodingNepal</title>
-  <link rel="stylesheet" href="/stylesheets/form.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Chat App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/stylesheets/login.css">
 </head>
 <body>
-  <div class="wrapper">
-    <form action="/users/login" method="POST">
-      <h2>Login</h2>
-        <div class="input-field">
-        
-          <input type="text" 
-                 id="username" 
-                 name="username" 
-                 placeholder="Username"
-                 value="<%= locals.oldInput ? oldInput.username : '' %>" >
-      </div>
-      <div class="input-field">
-      
-          <input type="password" id="password" name="password" placeholder="Password">
-      </div>
-      <% if (locals.message) { %>
-        <div class="error-message">
-          <%= message %>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Welcome Back!</h1>
+            <p>We're so excited to see you again!</p>
         </div>
-        <% } %>
-      <div class="forget">
-        <label for="remember">
-          <input type="checkbox" id="remember">
-          <p>Remember me</p>
-        </label>
-        <a href="#">Forgot password?</a>
-      </div>
-      <button type="submit">Log In</button>
-      <div class="register">
-        <p>Don't have an account? <a href="/users/register">Register</a></p>
-      </div>
-    </form>
-  </div>
+        
+        <form action="/users/login" method="POST">
+            <div class="form-group">
+                <label for="username">USERNAME</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    value="<%= locals.oldInput ? oldInput.username : '' %>"
+                    required
+                    autocomplete="username"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">PASSWORD</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password"
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <% if (locals.message) { %>
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <%= message %>
+            </div>
+            <% } %>
+
+            <button type="submit" class="submit-button">Log In</button>
+        </form>
+
+        <div class="register-link">
+            Need an account? <a href="/users/register">Register</a>
+        </div>
+    </div>
 </body>
 </html>
