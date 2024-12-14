@@ -12,16 +12,56 @@
         <div class="sidebar">
             <div class="user-profile">
                 <div class="avatar">
-                    <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar">
+                    <!-- <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar"> -->
+                    <% if (locals.username) { %>
+                        <img src="https://ui-avatars.com/api/?name=<%= username %>" alt="avatar">
+                    <% } else { %>
+                        <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar">
+                    <% } %>
                     <span class="status online"></span>
                 </div>
                 <div class="user-info">
-                    <h3>ducchinhpro123</h3>
+                    <% if (locals.username) { %>
+                        <h3><%= username %></h3>
+                    <% } else { %>
+                        <h3>Annonymous</h3>
+                    <% } %>
                     <p class="status-text">Online</p>
                 </div>
-                <button class="settings-btn">
+                <button class="settings-btn" id="settingsBtn">
                     <i class="fas fa-cog"></i>
                 </button>
+                <!--  POP UP WINDOW when user click on setting button -->
+                <div class="settings-popup" id="settingsPopup">
+                    <div class="popup-content">
+                        <div class="user-info">
+                            <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=<%= username %>" alt="Avatar" class="popup-avatar">
+                            <div class="user-details">
+                                <span class="username"><%= username %></span>
+                                <span class="status">Online</span>
+                            </div>
+                        </div>
+                        <div class="popup-divider"></div>
+                        <div class="popup-menu">
+                            <a href="/users/profile" class="menu-item">
+                                <i class="fas fa-user"></i>
+                                Profile
+                            </a>
+                            <a href="/users/settings" class="menu-item">
+                                <i class="fas fa-sliders-h"></i>
+                                Settings
+                            </a>
+                            <form action="/users/logout" method="GET" id="logoutForm">
+                                <button type="submit" class="menu-item logout-btn">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <!--  ------ POP UP WINDOW when user click on setting button ----- --->
+
             </div>
 
             <div class="search-box">
@@ -120,4 +160,35 @@
         </div>
     </div>
 </body>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const settingsButton = document.getElementById('settingsBtn');
+        const settingsPopup = document.getElementById('settingsPopup');
+
+        function positionPopup() {
+            const btnRect = settingsBtn.getBoundingClientRect();
+            settingsPopup.style.top = btnRect.bottom + 8 + 'px';
+            settingsPopup.style.right = window.innerWidth - btnRect.right - 40 + 'px';
+        }
+
+        // Handle the case when user click on background
+        document.addEventListener('click', (e) => {
+            if (!settingsButton.contains(e.target) && !settingsPopup.contains(e.target)) {
+                settingsPopup.classList.remove('active');
+            }
+        });
+
+        // Toggle popup window
+        settingsButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isActive = settingsPopup.classList.contains('active');
+            if (!isActive) {
+                positionPopup();
+            }
+            settingsPopup.classList.toggle('active');
+        });
+    })
+</script>
+
 </html>
