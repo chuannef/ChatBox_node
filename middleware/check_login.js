@@ -26,11 +26,6 @@ export function verifyLogin(req, res, next) {
         { 'expiresIn': '1h' }
       );
 
-      // res.cookie('jwt', token, {
-      //   httpOnly: true, 
-      //   maxAge: 3600000,
-      //   sameSite: 'strict'
-      // });
       // new token will lives within 1h
       res.cookie('jwt', newToken, {
         httpOnly: true,
