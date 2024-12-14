@@ -1,5 +1,5 @@
 import {createServer} from 'http';
-import {runningSocket} from '../socket/config_socket.js';
+import {initializeSocket} from '../socket/config_socket.js';
 import debug from 'debug';
 
 export function configServer(app) {
@@ -15,7 +15,8 @@ export function configServer(app) {
   server.on('error', onError);
   server.on('listening', onListening);
 
-  runningSocket(server);
+  // runningSocket(server);
+  initializeSocket(server);
 
   function normalizePort(val) {
     const port = parseInt(val, 10);
