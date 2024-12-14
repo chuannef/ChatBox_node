@@ -34,6 +34,7 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 // 24h
   }
 }));
+
 app.use(flash());
 
 app.set('view engine', 'ejs');
@@ -42,7 +43,11 @@ app.use(logger('dev'));
 app.use(json());
 app.use(urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// app.use(authenticateToken);
+
 app.use(express.static(join(__dirname, 'public')));
+
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
