@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 
 import { User } from '../models/user.js';
 import { Channel } from '../models/channel.js';
+import { Message } from '../models/message.js';
 
 export function initializeSocket(server) {
   const connectedUsers = new Map();
@@ -53,26 +54,78 @@ export function initializeSocket(server) {
     // TODO: implement user online status 
     // await User.findByIdAndUpdate(socket.user._id);
 
-    socket.on('chat', (msg, callback) => {
+    // socket.emit('join channel', channelId)
+    socket.on('join channel', async (channelId) => {
       try {
-        console.log(`Received message from: ${socket.user.username}: ${msg}`);
-        // Return message to client
-        io.emit('message', {
-          content: msg,
-          username: socket.user.username,
-          userId: socket.user._id,
+        const channel = await Channel.findById(channelId);
+        if (channel) {
+          socket.join(channelId);
+          console.log(`${socket.user.username} joined channel: ${channel.name}`);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    socket.on('chat', async (data, callback) => {
+      console.log('RECEIVED SOME DATA FROM CLIENT');
+      console.log(data);
+
+      try {
+        console.log(`Received message from: ${socket.user.username}`);
+        const { content, channelId } = data;
+        // Verify channel exists
+        const channel = await Channel.findById(channelId);
+        if (!channel) {
+          throw new Error('Channel not found');
+        }
+
+        const message = new Message({
+          content: content,
+          sender: socket.user._id, // current user
+          channel: channelId, // channel that user is in 
           timestamp: new Date()
         });
+
+        await message.save();
+
+        // Return message to client
+        // io.to(channelId).emit('message', {
+        io.emit('message', {
+          _id: message._id,
+          content: message.content,
+          sender: {
+            _id: socket.user._id,
+            username: socket.user.username
+          },
+          channel: channelId,
+          sentAt: message.sentAt
+        });
+
         // Back to the client. Prevent delay and emit multiple time
         if (typeof callback === 'function') {
-          callback({ status: 'ok' });
+          console.log('Im a function');
+          callback({ 
+            status: 'ok',
+            message: {
+              _id: message._id,
+              content: message.content,
+              sender: {
+                _id: socket.user._id,
+                username: socket.user.username,
+              },
+              channel: channelId,
+              sentAt: message.sentAt
+            }
+          });
         }
 
       } catch (e) {
         console.error(e);
         // socket.emit('error', 'Failed to process message');
         if (typeof callback === 'function') {
-          callback({ status: 'error', message: error.message });
+          console.log('complete');
+          callback({ status: 'error', message: e.message });
         }
       }
       // console.log(msg);
