@@ -120,7 +120,7 @@ class IndexController {
           });
 
           // <div class="channel <%= currentChannelId === channel._id ? 'active'  : '' %>">
-          console.log(`channel id: ${channel._id}`);
+
           return res.render('index', 
             { username: user.username, 
               user_id: user.id, 
