@@ -94,7 +94,7 @@
                                     </div>
                                     <div class="channel-meta">
                                         <span class="time">12:30</span>
-                                        <span class="unread">3</span>
+                                        <span class="unread"> <%= channel.messageCount %> </span>
                                     </div>
                                 </div>
                             </a>
@@ -131,9 +131,12 @@
 
                         <% if (msg.sender !== null) { %>
                             <div class="message <%= msg.sender._id.toString() === user_id ? 'own-message' : '' %>">
-                                <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(msg.sender.username) %>" 
-                                     alt="avatar" 
-                                     class="message-avatar">
+                                <!-- <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(msg.sender.username) %>" --> 
+                                <!--      alt="avatar" --> 
+                                <!--      class="message-avatar"> -->
+
+                                <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=<%= msg.sender.username %>" alt="Avatar" class="message-avatar">
+
                                 <div class="message-content">
                                     <div class="message-header">
                                         <h4><%= msg.sender._id.toString() === user_id ? 'You' : msg.sender.username %></h4>
@@ -187,159 +190,7 @@
     </div>
 </body>
 <script src="/socket.io/socket.io.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-
-        function getWSToken() {
-            const cookies = document.cookie.split(';')
-                .map(cookie => cookie.trim())
-                .reduce((acc, curr) => {
-                    const [key, value] = curr.split('=');
-                    acc[key] = value;
-                    return acc;
-                }, {});
-
-            return cookies['wsToken'];
-        }
-        const token = getWSToken();
-        const socket = io({
-            ackTimeout: 10000,
-            retries: 3,
-            transports: ['websocket'],
-            upgrade: false,
-            auth: { token }
-        });
-
-        socket.on('connect', () => {
-            console.log(`${socket} connected successfully`);
-        });
-
-        const msgInput = document.getElementById('msgInput');
-        const msgForm = document.getElementById('msgForm');
-        const messagesContainer = document.querySelector('.messages');
-
-        const CURRENT_USER = '<%= username %>';
-        const USER_ID = '<%= user_id %>';
-
-        // Prevent socket io auto submit
-        msgForm.removeEventListener('submit', handleSubmit);
-
-        function handleSubmit(e) {
-            e.preventDefault();
-            const channelId = getCurrentChannel();
-            const content = msgInput.value;
-
-            msgInput.disabled = true;
-            const messageData = {
-                content: content,
-                channelId: channelId
-            };
-
-            socket.emit('chat', messageData, (response) => {
-                msgInput.disabled = false;
-                msgInput.focus();
-                msgInput.value = '';
-
-
-                <!-- if (response?.status === 'ok') { -->
-                <!--     msgInput.value = ''; -->
-                <!-- } else { -->
-                    <!-- console.log(response); -->
-                    <!-- alert('Failed to send message: ' + (response?.message || 'Unknown error')); -->
-                <!-- } -->
-
-            });
-        }
-
-        msgForm.addEventListener('submit', handleSubmit);
-
-        <!-- function joinChannel(channelId) { -->
-        <!--     socket.emit('join channel', channelId) -->
-        <!-- } -->
-
-        // channel switching 
-        document.querySelectorAll('.channel-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const channelId = e.currentTarget.dataset.channelId;
-                if (channelId) {
-                    window.location.href = `/channel/${channelId}`;
-                    <!-- joinChannel(channelId); -->
-                }
-            });
-        });
-
-        // Handle incomming message. Here is how msg contains
-        /*
-        io.emit('message', {
-          content: msg,
-          username: socket.user.username,
-          userId: socket.user._id,
-          timestamp: new Date()
-        });
-         */
-        socket.on('message', (msg) => {
-            console.log('msg received from server: ', msg);
-            appendToChatMessages(msg);
-        });
-        
-        socket.on('disconnect', (msg) => {
-            console.log('Disconnected: ', msg);
-        })
-
-        function appendToChatMessages(msg) {
-            const msgDate = new Date(msg.sentAt);
-            const today = new Date();
-
-            if (!document.querySelector('.date-divider')) {
-                const dateDivider = document.createElement('div');
-                dateDivider.className = 'date-divider';
-                dateDivider.innerHTML = `<span>${isToday(msgDate) ? 'Today' : msgDate.toLocaleString()}</span>`
-                messagesContainer.appendChild(dateDivider);
-            }
-
-            const isOwnMsg = msg.sender.username === CURRENT_USER;
-
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message';
-            msgDiv.className = `message ${isOwnMsg ? 'own-message' : ''}`;
-
-            msgDiv.innerHTML = `
-                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(msg.username)}" alt="avatar" class="message-avatar">
-                <div class="message-content">
-                    <div class="message-header">
-                        <h4>${isOwnMsg ? 'You' : msg.sender.username}</h4>
-                        <span class="time">${msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                    <p>${msg.content}</p>
-                </div>
-            `;
-
-            messagesContainer.appendChild(msgDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        function isToday(date) {
-            const today = new Date();
-            return date.getDate() === today.getDay() 
-            && date.getMonth() === today.getMonth()
-            && date.getFullYear() === today.getFullYear();
-        }
-
-        function getCurrentChannel() {
-            const activeChannel = document.querySelector('.channel.active');
-            if (!activeChannel) return null;
-            return activeChannel.getAttribute('channel-data-id');
-        }
-
-        const currentChannelId = getCurrentChannel();
-        if (currentChannelId) {
-            console.log('TEST');
-            <!-- joinChannel(currentChannelId); -->
-        }
-    });
-
-</script>
+<script src="/javascript/main.js"> </script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const settingsButton = document.getElementById('settingsBtn');
