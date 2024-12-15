@@ -1,13 +1,17 @@
-
 document.addEventListener('DOMContentLoaded', () => {
-
     const msgInput = document.getElementById('msgInput');
     const msgForm = document.getElementById('msgForm');
     const messagesContainer = document.querySelector('.messages');
+    const contextMenu = document.getElementById('contextMenu');
 
-    const CURRENT_USER = '<%= username %>';
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+
+    // const CURRENT_USER = '<%= username %>';
     const currentUsername = document.getElementById("username-hidden").value;
-    const USER_ID = '<%= user_id %>';
+    const currentUserId = document.getElementById("userid-hidden").value;
+
+    // const USER_ID = '<%= user_id %>';
 
     function getWSToken() {
         const cookies = document.cookie.split(';')
@@ -69,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const messageData = { content, channelId };
 
         msgInput.disabled = true;
+
         try {
             await new Promise((resolve, reject) => {
                 socket.emit('chat', messageData, (response) => {
@@ -136,6 +141,14 @@ document.addEventListener('DOMContentLoaded', () => {
         joinedChannels.clear();
     });
 
+    socket.on('message deleted', (data) => {
+        const { messageId } = data;
+        const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            messageElement.remove();
+        }
+    })
+
     function appendToChatMessages(msg) {
         if (!msg || !msg.content) return;
 
@@ -190,5 +203,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    messagesContainer.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        // Find the closest div that near messages, that is message
+        const messageElement = e.target.closest('.message');
+        if (!messageElement) return;
+
+        const messageId = messageElement.dataset.messageId;
+        const senderId = messageElement.dataset.senderId;
+        if (currentUserId !== senderId) {
+            return;
+        }
+
+        contextMenu.style.display = 'block';
+        contextMenu.style.left = `${e.pageX}px`;
+        contextMenu.style.top = `${e.pageY}px`;
+
+        // Set dataset for later use
+        contextMenu.dataset.messageId = messageId;
+    });
+
+    contextMenu.addEventListener('click', (e) => {
+        const action = e.target.dataset.action;
+        const messageId = contextMenu.dataset.messageId;
+
+        if (action === 'delete' && messageId) {
+
+            socket.emit('delete message',  { messageId });
+
+            // socket.emit('delete message',  { messageId }, (response) => {
+            //     if (response.status === 'ok') {
+            //         const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+            //         if (messageElement) messageElement.remove();
+            //     } else {
+            //         const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+            //         if (messageElement) messageElement.remove();
+            //         console.log('Failed to delete message');
+            //     }
+            // });
+        }
+        contextMenu.style.display = 'none';
+    });
 });
 
