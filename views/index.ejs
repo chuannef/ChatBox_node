@@ -101,26 +101,6 @@
                             </a>
                         <% }) %>
                     <% } %>
-                    <div class="channel active">
-                        <div class="channel-icon">#</div>
-                        <div class="channel-info">
-                            <h4>general</h4>
-                            <p>Latest message here...</p>
-                        </div>
-                        <div class="channel-meta">
-                            <span class="time">12:30</span>
-                            <span class="unread">3</span>
-                        </div>
-                    </div>
-
-                    <!-- More channels -->
-                    <div class="channel">
-                        <div class="channel-icon">#</div>
-                        <div class="channel-info">
-                            <h4>random</h4>
-                            <p>Latest message here...</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -188,6 +168,7 @@
                 <% } else { %>
                 <div class="no-messages">
                     <p>No messages in this channel yet. Be the first to say something!</p>
+                    <% } %>
                 <div class="date-divider">
                     <span>Today</span>
                 </div>
@@ -260,19 +241,19 @@
     })
 
     const attachBtn = document.querySelector('.attach-btn');
-const attachOptions = document.querySelector('.attach-options');
+    const attachOptions = document.querySelector('.attach-options');
 
-attachBtn.addEventListener('click', () => {
-    // Toggle hiển thị bảng lựa chọn
-    attachOptions.style.display = attachOptions.style.display === 'flex' ? 'none' : 'flex';
-});
+    attachBtn.addEventListener('click', () => {
+        // Toggle hiển thị bảng lựa chọn
+        attachOptions.style.display = attachOptions.style.display === 'flex' ? 'none' : 'flex';
+    });
 
-// Ẩn bảng khi nhấn ra ngoài
-document.addEventListener('click', (event) => {
-    if (!attachBtn.contains(event.target) && !attachOptions.contains(event.target)) {
-        attachOptions.style.display = 'none';
-    }
-});
+    // Ẩn bảng khi nhấn ra ngoài
+    document.addEventListener('click', (event) => {
+        if (!attachBtn.contains(event.target) && !attachOptions.contains(event.target)) {
+            attachOptions.style.display = 'none';
+        }
+    });
 
 </script>
 
