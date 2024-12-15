@@ -63,7 +63,7 @@ export function initializeSocket(server) {
           userId: socket.user._id,
           timestamp: new Date()
         });
-        // Back to the client. Prevent delay and emit multiple times
+        // Back to the client. Prevent delay and emit multiple time
         if (typeof callback === 'function') {
           callback({ status: 'ok' });
         }
