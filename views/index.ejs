@@ -18,7 +18,7 @@
                     <% if (locals.username) { %>
                         <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=<%= username %>" alt="Avatar" class="popup-avatar">
                     <% } else { %>
-                        <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar">
+                        <img src="https://ui-avatars.com/api/?name=John" alt="avatar">
                     <% } %>
                     <span class="status online"></span>
                 </div>
@@ -80,17 +80,22 @@
                 </div>
                 
                 <div class="channel-list">
-                    <div class="channel active">
-                        <div class="channel-icon">#</div>
-                        <div class="channel-info">
-                            <h4>general</h4>
-                            <p>Latest message here...</p>
-                        </div>
-                        <div class="channel-meta">
-                            <span class="time">12:30</span>
-                            <span class="unread">3</span>
-                        </div>
-                    </div>
+                    <% if (locals.channels) {  %>
+                        <% channels.forEach((channel) => { %>
+                            <div class="channel active">
+                                <div class="channel-icon">#</div>
+                                <div class="channel-info">
+                                    <h4> <a style="text-decoration: none; color: #dcddde"
+                                            href="/channel/<%= channel._id %>"><%= channel.name %> </a> </h4>
+                                    <p>Latest message here...</p>
+                                </div>
+                                <div class="channel-meta">
+                                    <span class="time">12:30</span>
+                                    <span class="unread">3</span>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } %>
 
                     <!-- More channels -->
                     <div class="channel">
@@ -117,19 +122,55 @@
             </div>
 
             <div class="messages">
-                <div class="date-divider">
-                    <span>Today</span>
+                <% if (locals.messages && messages.length > 0) { %>
+                    <% let lastMessageDate = null; %>
+                    <% messages.forEach((msg) => { %>
+                        <% const messageDate = new Date(msg.sentAt).toDateString(); %>
+
+                        <% if (lastMessageDate !== messageDate) { %>
+                            <div class="date-divider">
+                                <span><%= messageDate === new Date().toDateString() ? 'Today' : messageDate %></span>
+                            </div>
+                            <% lastMessageDate = messageDate; %>
+                        <% } %>
+
+                        <% if (msg.sender !== null) { %>
+                            <div class="message <%= msg.sender._id.toString() === user_id ? 'own-message' : '' %>">
+                                <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(msg.sender.username) %>" 
+                                     alt="avatar" 
+                                     class="message-avatar">
+                                <div class="message-content">
+                                    <div class="message-header">
+                                        <h4><%= msg.sender._id.toString() === user_id ? 'You' : msg.sender.username %></h4>
+                                        <span class="time">
+                                            <%= new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %>
+                                        </span>
+                                    </div>
+                                    <p><%= msg.content %></p>
+                                </div>
+                            </div>
+                        <% } else { %>
+                            <div class="message">
+                                <img src="https://ui-avatars.com/api/?name=John" 
+                                     alt="avatar" 
+                                     class="message-avatar">
+                                <div class="message-content">
+                                    <div class="message-header">
+                                        <h4>ERROR: Cannot read username</h4>
+                                        <span class="time">
+                                            <%= new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %>
+                                        </span>
+                                    </div>
+                                    <p><%= msg.content %></p>
+                                </div>
+                            </div>
+                        <% } %>
+                    <% }) %>
+                <% } else { %>
+                <div class="no-messages">
+                    <p>No messages in this channel yet. Be the first to say something!</p>
                 </div>
-                <!-- <div class="message own-message"> -->
-                <!--     <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar" class="message-avatar"> -->
-                <!--     <div class="message-content"> -->
-                <!--         <div class="message-header"> -->
-                <!--             <h4>You</h4> -->
-                <!--             <span class="time">12:31 PM</span> -->
-                <!--         </div> -->
-                <!--         <p>Hello! How's everyone doing?</p> -->
-                <!--     </div> -->
-                <!-- </div> -->
+                <% } %>
             </div>
 
             <div class="input-area">
@@ -181,6 +222,7 @@
         const msgForm = document.getElementById('msgForm');
         const messagesContainer = document.querySelector('.messages');
 
+        // Prevent socket io auto submit
         msgForm.removeEventListener('submit', handleSubmit);
 
         function handleSubmit(e) {
@@ -215,12 +257,8 @@
 
         function appendToChatMessages(msg) {
             const currentUser = 'chinhcom';
-            <!-- const currentUser = window.CURRENT_USER; -->
             const CURRENT_USER = '<%= username %>';
-            console.log(CURRENT_USER);
 
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message';
 
             const msgDate = new Date(msg.timestamp);
             const today = new Date();
@@ -233,6 +271,9 @@
             }
 
             const isOwnMsg = msg.username === CURRENT_USER;
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message';
             msgDiv.className = `message ${isOwnMsg ? 'own-message' : ''}`;
 
             msgDiv.innerHTML = `
