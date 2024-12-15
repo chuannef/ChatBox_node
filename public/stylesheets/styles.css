@@ -634,3 +634,44 @@ body {
 .logout-btn i {
     color: var(--error-color);
 }
+
+
+/* thêm  */
+.attach-wrapper {
+    position: relative;
+}
+
+.attach-btn {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
+    color: #007BFF;
+}
+
+.attach-options {
+    position: absolute;
+    bottom: 40px; /* Hiển thị phía trên nút */
+    left: 0;
+    display: none; /* Ẩn bảng mặc định */
+    flex-direction: column;
+    gap: 10px;
+    background-color: #55b1d8;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.attach-options button {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    color: #333;
+}
+
+.attach-options button:hover {
+    color: #007BFF;
+}
