@@ -15,13 +15,33 @@ class IndexController {
     // find all channels to display in sidebar
     try {
       const channels = await Channel.find();
-      return res.render('index', { username: user.username, user_id: user.id, channels: channels });
+      const firstChannel = channels[0];
+      console.log(firstChannel);
+
+      // <!-- <div class="channel <%= currentChannelId === channel._id.toString() ? 'active' : '' %>" -->
+      return res.render('index', 
+        { username: user.username, 
+          user_id: user.id, 
+          channels: channels, 
+          messages: null,
+          currentChannel: firstChannel,
+          currentChannelId: firstChannel._id,
+          channelUsers: null });
+      // return res.render('index', { username: user.username, user_id: user.id, channels: channels });
     } catch (e) {
         console.error(e);
         return res.render('index', { message: 'Something went wrong' });
     }
 
-    return res.render('index', { username: user.username, user_id: user.id });
+    // return res.render('index', { username: user.username, user_id: user.id });
+    return res.render('index', 
+      { username: user.username, 
+        user_id: user.id, 
+        channels: null, 
+        messages: null,
+        currentChannel: null,
+        currentChannelId: null,
+        channelUsers: null });
   }
 
   /**
@@ -35,7 +55,61 @@ class IndexController {
         const user = req.user;
 
         if (channel) {
-          const channels = await Channel.find();
+          // const channels = await Channel.find();
+          // Get all channels with their latest message
+          const channels = await Channel.aggregate([
+            {
+              $lookup: {
+                from: 'messages',
+                localField: '_id',
+                foreignField: 'channel',
+                pipeline: [
+                  { $sort: { sentAt: -1 } },
+                  { $limit: 1 },
+                  {
+                    $lookup: {
+                      from: 'users',
+                      localField: 'sender',
+                      foreignField: '_id',
+                      as: 'sender'
+                    }
+                  },
+                  { $unwind: '$sender' }
+                ],
+                as: 'latestMessage'
+              }
+            },
+            {
+              $lookup: {
+                from: 'messages',
+                localField: '_id',
+                foreignField: 'channel',
+                pipeline: [
+                  { 
+                    $match: { 
+                      sentAt: { 
+                        $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+                      } 
+                    } 
+                  },
+                  { $count: 'count' }
+                ],
+                as: 'messageCount'
+              }
+            },
+            {
+              $addFields: {
+                latestMessage: { $arrayElemAt: ['$latestMessage', 0] },
+                messageCount: { 
+                  $ifNull: [
+                    { $arrayElemAt: ['$messageCount.count', 0] },
+                    0
+                  ]
+                }
+              }
+            }
+          ]);
+
           const channelUsers = await UserChannel.find({ channelId: id }).populate('userId', 'username');
           const messages = await Message.find({channel: channel._id}).populate('sender', 'username').sort({sentAt: 1});
 
@@ -45,12 +119,15 @@ class IndexController {
             }
           });
 
+          // <div class="channel <%= currentChannelId === channel._id ? 'active'  : '' %>">
+          console.log(`channel id: ${channel._id}`);
           return res.render('index', 
             { username: user.username, 
               user_id: user.id, 
               channels: channels, 
               messages: messages,
               currentChannel: channel,
+              currentChannelId: channel._id,
               channelUsers: channelUsers });
 
         } else {
