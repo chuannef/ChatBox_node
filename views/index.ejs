@@ -131,7 +131,8 @@
                         <% } %>
 
                         <% if (msg.sender !== null) { %>
-                            <div class="message <%= msg.sender._id.toString() === user_id ? 'own-message' : '' %>">
+                            <div class="message <%= msg.sender._id.toString() === user_id ? 'own-message' : '' %>"
+                                 data-message-id="<%= msg._id %>" data-sender-id="<%= msg.sender._id %>">
                                 <!-- <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(msg.sender.username) %>" --> 
                                 <!--      alt="avatar" --> 
                                 <!--      class="message-avatar"> -->
@@ -207,13 +208,22 @@
                 </form>
             </div>
         </div>
+        <div id="contextMenu" class="context-menu">
+            <ul>
+                <li data-action="delete">Delete Message</li>
+            </ul>
+        </div>
     </div>
     <input type="hidden" value="<%= username %>" id="username-hidden">  
+    <input type="hidden" value="<%= user_id %>" id="userid-hidden">  
 </body>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/javascript/main.js"> </script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const contextMenu = document.getElementById('contextMenu');
+        const messagesContainer = document.querySelector('.messages');
+
         const settingsButton = document.getElementById('settingsBtn');
         const settingsPopup = document.getElementById('settingsPopup');
 
@@ -228,7 +238,9 @@
             if (!settingsButton.contains(e.target) && !settingsPopup.contains(e.target)) {
                 settingsPopup.classList.remove('active');
             }
+            contextMenu.style.display = 'none';
         });
+
 
         // Toggle popup window
         settingsButton.addEventListener('click', (e) => {
