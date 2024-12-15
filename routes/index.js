@@ -7,6 +7,7 @@ let router = Router();
 
 /* GET home page. */
 router.get('/', verifyLogin, IndexController.index);
+router.get('/channel/:id', verifyLogin, IndexController.channel);
 
 router.get('/test-cookie', (req, res) => {
     const testToken = 'test-token-' + Date.now();
