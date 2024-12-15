@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="current-user" content="<%= username %>">
+    <meta name="user-id" content="<%= user_id %>">
 
     <title>Web Chat Interface</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -80,31 +81,25 @@
                 </div>
                 
                 <div class="channel-list">
-                    <% if (locals.channels) {  %>
+                    <% if (locals.channels && channels.length > 0) {  %>
                         <% channels.forEach((channel) => { %>
-                            <div class="channel active">
-                                <div class="channel-icon">#</div>
-                                <div class="channel-info">
-                                    <h4> <a style="text-decoration: none; color: #dcddde"
-                                            href="/channel/<%= channel._id %>"><%= channel.name %> </a> </h4>
-                                    <p>Latest message here...</p>
+                            <a style="text-decoration: none; color: #dcddde" href="/channel/<%= channel._id %>" 
+                                class="channel-link" data-channel-id="<%= channel._id %>">
+                                <div class="channel <%= currentChannelId.toString() === channel._id.toString() ? 'active'  : '' %>" 
+                                    channel-data-id="<%= channel._id %>">
+                                    <div class="channel-icon">#</div>
+                                    <div class="channel-info">
+                                        <h4> <%= channel.name %> </h4>
+                                        <p>Latest message here...</p>
+                                    </div>
+                                    <div class="channel-meta">
+                                        <span class="time">12:30</span>
+                                        <span class="unread">3</span>
+                                    </div>
                                 </div>
-                                <div class="channel-meta">
-                                    <span class="time">12:30</span>
-                                    <span class="unread">3</span>
-                                </div>
-                            </div>
+                            </a>
                         <% }) %>
                     <% } %>
-
-                    <!-- More channels -->
-                    <div class="channel">
-                        <div class="channel-icon">#</div>
-                        <div class="channel-info">
-                            <h4>random</h4>
-                            <p>Latest message here...</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -194,6 +189,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+
         function getWSToken() {
             const cookies = document.cookie.split(';')
                 .map(cookie => cookie.trim())
@@ -222,21 +218,56 @@
         const msgForm = document.getElementById('msgForm');
         const messagesContainer = document.querySelector('.messages');
 
+        const CURRENT_USER = '<%= username %>';
+        const USER_ID = '<%= user_id %>';
+
         // Prevent socket io auto submit
         msgForm.removeEventListener('submit', handleSubmit);
 
         function handleSubmit(e) {
             e.preventDefault();
-            if (msgInput.value) {
-                // Send message to server
-                socket.emit('chat', msgInput.value, (ack) => {
-                    msgInput.disabled = false;
-                    msgInput.value = '';
-                    msgInput.focus();
-                });
-            }
+            const channelId = getCurrentChannel();
+            const content = msgInput.value;
+
+            msgInput.disabled = true;
+            const messageData = {
+                content: content,
+                channelId: channelId
+            };
+
+            socket.emit('chat', messageData, (response) => {
+                msgInput.disabled = false;
+                msgInput.focus();
+                msgInput.value = '';
+
+
+                <!-- if (response?.status === 'ok') { -->
+                <!--     msgInput.value = ''; -->
+                <!-- } else { -->
+                    <!-- console.log(response); -->
+                    <!-- alert('Failed to send message: ' + (response?.message || 'Unknown error')); -->
+                <!-- } -->
+
+            });
         }
+
         msgForm.addEventListener('submit', handleSubmit);
+
+        <!-- function joinChannel(channelId) { -->
+        <!--     socket.emit('join channel', channelId) -->
+        <!-- } -->
+
+        // channel switching 
+        document.querySelectorAll('.channel-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const channelId = e.currentTarget.dataset.channelId;
+                if (channelId) {
+                    window.location.href = `/channel/${channelId}`;
+                    <!-- joinChannel(channelId); -->
+                }
+            });
+        });
 
         // Handle incomming message. Here is how msg contains
         /*
@@ -248,6 +279,7 @@
         });
          */
         socket.on('message', (msg) => {
+            console.log('msg received from server: ', msg);
             appendToChatMessages(msg);
         });
         
@@ -256,11 +288,7 @@
         })
 
         function appendToChatMessages(msg) {
-            const currentUser = 'chinhcom';
-            const CURRENT_USER = '<%= username %>';
-
-
-            const msgDate = new Date(msg.timestamp);
+            const msgDate = new Date(msg.sentAt);
             const today = new Date();
 
             if (!document.querySelector('.date-divider')) {
@@ -270,7 +298,7 @@
                 messagesContainer.appendChild(dateDivider);
             }
 
-            const isOwnMsg = msg.username === CURRENT_USER;
+            const isOwnMsg = msg.sender.username === CURRENT_USER;
 
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message';
@@ -280,7 +308,7 @@
                 <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(msg.username)}" alt="avatar" class="message-avatar">
                 <div class="message-content">
                     <div class="message-header">
-                        <h4>${isOwnMsg ? 'You' : msg.username}</h4>
+                        <h4>${isOwnMsg ? 'You' : msg.sender.username}</h4>
                         <span class="time">${msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <p>${msg.content}</p>
@@ -296,6 +324,18 @@
             return date.getDate() === today.getDay() 
             && date.getMonth() === today.getMonth()
             && date.getFullYear() === today.getFullYear();
+        }
+
+        function getCurrentChannel() {
+            const activeChannel = document.querySelector('.channel.active');
+            if (!activeChannel) return null;
+            return activeChannel.getAttribute('channel-data-id');
+        }
+
+        const currentChannelId = getCurrentChannel();
+        if (currentChannelId) {
+            console.log('TEST');
+            <!-- joinChannel(currentChannelId); -->
         }
     });
 
