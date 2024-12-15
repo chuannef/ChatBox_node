@@ -196,7 +196,7 @@
                 </div>
                 
                 <form class="input-wrapper" id="msgForm">
-                    <input id="msgInput" type="text" placeholder="Message #general">
+                    <input id="msgInput" type="text" placeholder='Message # <%= currentChannel.name %>'>
                     <!-- <div class="input-actions">
                         <button type="button"><i class="far fa-smile"></i></button>
                         <button type="button"><i class="fas fa-paperclip"></i></button>
@@ -208,6 +208,7 @@
             </div>
         </div>
     </div>
+    <input type="hidden" value="<%= username %>" id="username-hidden">  
 </body>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/javascript/main.js"> </script>

@@ -131,6 +131,7 @@ export function initializeSocket(server) {
 
         // Return message to client
         io.to(channelId).emit('message', messageData);
+        // io.emit('message', messageData);
 
         if (callback) {
           console.log("CALLBACK ARE CALLED")
