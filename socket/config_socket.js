@@ -4,9 +4,11 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/user.js';
 import { Channel } from '../models/channel.js';
 import { Message } from '../models/message.js';
+import {log} from "debug";
 
 export function initializeSocket(server) {
   const connectedUsers = new Map();
+  // const userChannels = new Map();
 
   const io = new Server(server, {
     connectionStateRecovery: {},
@@ -41,6 +43,7 @@ export function initializeSocket(server) {
         existingSocket.disconnect();
       }
 
+      // Attach user to socket for later use
       socket.user = user;
       connectedUsers.set(user._id.toString(), socket);
       next();
@@ -55,30 +58,56 @@ export function initializeSocket(server) {
     // await User.findByIdAndUpdate(socket.user._id);
 
     // socket.emit('join channel', channelId)
-    socket.on('join channel', async (channelId) => {
+    socket.on('join channel', async (channelId, callback) => {
       try {
-        const channel = await Channel.findById(channelId);
-        if (channel) {
-          socket.join(channelId);
-          console.log(`${socket.user.username} joined channel: ${channel.name}`);
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    });
-
-    socket.on('chat', async (data, callback) => {
-      console.log('RECEIVED SOME DATA FROM CLIENT');
-      console.log(data);
-
-      try {
-        console.log(`Received message from: ${socket.user.username}`);
-        const { content, channelId } = data;
-        // Verify channel exists
         const channel = await Channel.findById(channelId);
         if (!channel) {
           throw new Error('Channel not found');
         }
+
+        const existingRooms = Array.from(socket.rooms);
+        
+        // Leave all other channels
+        await Promise.all(existingRooms.map(room => {
+          if (room !== socket.id) {
+            return socket.leave(room);
+          }
+        }));
+
+        // Join new channel
+        await socket.join(channelId);
+
+        console.log(`${socket.user.username} joined channel: ${channel.name}`);
+
+        if (typeof callback === 'function') {
+          callback({
+            status: 'ok',
+            message: `Successfully joined channel ${channel.name}`,
+            channelId: channelId
+          });
+        }
+        // if (callback) callback({status: 'ok'});
+
+      } catch (e) {
+        console.error(e);
+        if (typeof callback === 'function') {
+          callback({
+            status: 'error',
+            error: e.message
+          });
+        }
+      }
+    });
+
+    socket.on('chat', async (data, callback) => {
+
+      try {
+        const { content, channelId } = data;
+        if (!content || !channelId) throw new Error('Invalid data');
+
+        // Verify channel exists
+        const channel = await Channel.findById(channelId);
+        if (!channel) throw new Error('Channel not found'); 
 
         const message = new Message({
           content: content,
@@ -89,9 +118,7 @@ export function initializeSocket(server) {
 
         await message.save();
 
-        // Return message to client
-        // io.to(channelId).emit('message', {
-        io.emit('message', {
+        const messageData = {
           _id: message._id,
           content: message.content,
           sender: {
@@ -100,36 +127,27 @@ export function initializeSocket(server) {
           },
           channel: channelId,
           sentAt: message.sentAt
-        });
+        };
 
-        // Back to the client. Prevent delay and emit multiple time
-        if (typeof callback === 'function') {
-          console.log('Im a function');
-          callback({ 
+        // Return message to client
+        io.to(channelId).emit('message', messageData);
+
+        if (callback) {
+          console.log("CALLBACK ARE CALLED")
+          callback({
             status: 'ok',
-            message: {
-              _id: message._id,
-              content: message.content,
-              sender: {
-                _id: socket.user._id,
-                username: socket.user.username,
-              },
-              channel: channelId,
-              sentAt: message.sentAt
-            }
+            message: messageData
           });
         }
 
       } catch (e) {
         console.error(e);
         // socket.emit('error', 'Failed to process message');
-        if (typeof callback === 'function') {
-          console.log('complete');
-          callback({ status: 'error', message: e.message });
-        }
+        console.log(e);
+        if (callback) callback({ 
+          status: 'error', 
+          error: `Failed to process message: ${e.message}` });
       }
-      // console.log(msg);
-      // io.emit('chat', msg);
     });
 
     socket.on('disconnect', async () => {
