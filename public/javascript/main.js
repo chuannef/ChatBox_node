@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const messagesContainer = document.querySelector('.messages');
 
     const CURRENT_USER = '<%= username %>';
+    const currentUsername = document.getElementById("username-hidden").value;
     const USER_ID = '<%= user_id %>';
 
     function getWSToken() {
@@ -65,25 +66,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const content = msgInput.value;
 
         if (!content || !channelId) return;
+        const messageData = { content, channelId };
 
         msgInput.disabled = true;
         try {
-            // await new Promise((resolve, reject) => {
-            //     socket.emit('chat', { content, channelId }, (response) => {
-            //         if (response?.status === 'ok') {
-            //             resolve(response);
-            //         } else {
-            //             reject(new Error(response?.message));
-            //         }
-            //     });
-            // });
-            await socket.emit('chat', { content, channelId }, (response) => {
-                console.log(response);
+            await new Promise((resolve, reject) => {
+                socket.emit('chat', messageData, (response) => {
+                    if (response?.status === 'ok') {
+                        resolve(response);
+                    } else {
+                        reject(new Error(response?.message));
+                    }
+                });
             });
+            // await socket.emit('chat', { content, channelId }, (response) => {
+            //     console.log(response);
+            // });
             msgInput.value = '';
         } catch (e) {
-            console.error('Failed to send message: ', e);
-            alert('Failed to send message. Please try again.');
+            console.error('Failed to send message: ');
+            console.log(e.message);
+            // alert('Failed to send message. Please try again.');
         } finally {
             msgInput.disabled = false;
             msgInput.focus();
@@ -95,19 +98,19 @@ document.addEventListener('DOMContentLoaded', () => {
     async function joinChannel(channelId) {
         if (!channelId) return;
 
-        socket.emit('join channel', channelId, (response) => {
-            joinedChannels.add(channelId);
-            // if (!response) {
-            //     joinedChannels.add(channelId);
-            //     console.error(`No response received`);
-            //     return;
-            // }
-            // if (response?.status === 'ok') {
-            //     joinedChannels.add(channelId);
-            //     console.log(`Joined channel: ${channelId}`);
-            // } else {
-            //     console.log(`Failed to join: ${channelId}`);
-            // }
+        await socket.emit('join channel', channelId, (response) => {
+            // joinedChannels.add(channelId);
+            if (!response) {
+                // joinedChannels.add(channelId);
+                console.error(`No response received`);
+                return;
+            }
+            if (response?.status === 'ok') {
+                joinedChannels.add(channelId);
+                console.log(`Joined channel: ${channelId}`);
+            } else {
+                console.log(`Failed to join: ${channelId}`);
+            }
         });
     }
 
@@ -141,14 +144,16 @@ document.addEventListener('DOMContentLoaded', () => {
             messagesContainer.appendChild(dateDivider);
         }
 
-        const isOwnMsg = msg.sender.username === CURRENT_USER;
+        const isOwnMsg = msg.sender.username === currentUsername;
+        console.log(currentUsername);
+        console.log(msg.sender.username);
 
         const msgDiv = document.createElement('div');
         msgDiv.className = 'message';
         msgDiv.className = `message ${isOwnMsg ? 'own-message' : ''}`;
 
         msgDiv.innerHTML = `
-                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(msg.sender.username)}" alt="avatar" class="message-avatar">
+                <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(msg.sender.username)}" alt="Avatar" class="message-avatar">
                 <div class="message-content">
                     <div class="message-header">
                         <h4>${isOwnMsg ? 'You' : msg.sender.username}</h4>
