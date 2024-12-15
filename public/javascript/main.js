@@ -86,10 +86,15 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error('Failed to send message: ');
             console.log(e.message);
+
+            msgInput.disabled = false;
+            msgInput.focus();
+            msgInput.value = '';
             // alert('Failed to send message. Please try again.');
         } finally {
             msgInput.disabled = false;
             msgInput.focus();
+            msgInput.value = '';
         }
     }
 
