@@ -22,4 +22,8 @@ router.post('/register', registerValidation, UsersController.registerRequest);
 
 router.get('/logout', verifyLogin, UsersController.logout);
 
+router.get('/profile', verifyLogin, (req, res) => {
+  res.render('profile', { user: req.user }); 
+});
+
 export default router;
