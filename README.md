@@ -8,6 +8,10 @@
 
 <img src="3.png" width="500" alt="Third Image">
 
+### Home Page
+
+<img src="5.png" width="500" alt="Home page">
+
 ## Quick start
 
 ```json
