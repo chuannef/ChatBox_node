@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
             msgInput.value = '';
         } catch (e) {
             console.error('Failed to send message: ');
-            console.log(e.message);
+            // console.log(e.message);
 
             msgInput.disabled = false;
             msgInput.focus();
@@ -168,7 +168,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const msgDiv = document.createElement('div');
         msgDiv.className = 'message';
+
+        // <div class="message <%= msg.sender._id.toString() === user_id ? 'own-message' : '' %>"
+        //      data-message-id="<%= msg._id %>" data-sender-id="<%= msg.sender._id %>">
         msgDiv.className = `message ${isOwnMsg ? 'own-message' : ''}`;
+        msgDiv.setAttribute('data-message-id', msg._id);
+        msgDiv.setAttribute('data-sender-id', msg.sender._id);
 
         msgDiv.innerHTML = `
                 <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(msg.sender.username)}" alt="Avatar" class="message-avatar">
@@ -211,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const messageId = messageElement.dataset.messageId;
         const senderId = messageElement.dataset.senderId;
+
         if (currentUserId !== senderId) {
             return;
         }
