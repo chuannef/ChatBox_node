@@ -13,6 +13,9 @@
 </head>
 <body>
     <div class="container">
+        <button id="sidebarToggle" class="sidebar-toggle">
+            <span class="toggle-icon">☰</span>
+        </button>
         <div class="sidebar">
             <div class="user-profile">
                 <div class="avatar">
@@ -35,37 +38,6 @@
                 <button class="settings-btn" id="settingsBtn">
                     <i class="fas fa-cog"></i>
                 </button>
-                <!--  POP UP WINDOW when user click on setting button -->
-                <div class="settings-popup" id="settingsPopup">
-                    <div class="popup-content">
-                        <div class="user-info">
-                            <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=<%= username %>" alt="Avatar" class="popup-avatar">
-                            <div class="user-details">
-                                <span class="username"><%= username %></span>
-                                <span class="status">Online</span>
-                            </div>
-                        </div>
-                        <div class="popup-divider"></div>
-                        <div class="popup-menu">
-                            <a href="/users/profile" class="menu-item">
-                                <i class="fas fa-user"></i>
-                                Profile
-                            </a>
-                            <a href="/users/settings" class="menu-item">
-                                <i class="fas fa-sliders-h"></i>
-                                Settings
-                            </a>
-                            <form action="/users/logout" method="GET" id="logoutForm">
-                                <button type="submit" class="menu-item logout-btn">
-                                    <i class="fas fa-sign-out-alt"></i>
-                                    Logout
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                <!--  ------ POP UP WINDOW when user click on setting button ----- --->
-
             </div>
 
             <div class="search-box">
@@ -80,7 +52,7 @@
                         <i class="fas fa-plus"></i>
                     </button>
                 </div>
-                
+
                 <div class="channel-list">
                     <% if (locals.channels && channels.length > 0) {  %>
                         <% channels.forEach((channel) => { %>
@@ -213,9 +185,41 @@
                 <li data-action="delete">Delete Message</li>
             </ul>
         </div>
-    </div>
-    <input type="hidden" value="<%= username %>" id="username-hidden">  
-    <input type="hidden" value="<%= user_id %>" id="userid-hidden">  
+        </div>
+
+        <!--  POP UP WINDOW when user click on setting button -->
+        <div class="settings-popup" id="settingsPopup">
+            <div class="popup-content">
+                <div class="user-info">
+                    <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=<%= username %>" alt="Avatar" class="popup-avatar">
+                    <div class="user-details">
+                        <span class="username"><%= username %></span>
+                        <span class="status">Online</span>
+                    </div>
+                </div>
+                <div class="popup-divider"></div>
+                <div class="popup-menu">
+                    <a href="/users/profile" class="menu-item">
+                        <i class="fas fa-user"></i>
+                        Profile
+                    </a>
+                    <a href="/users/settings" class="menu-item">
+                        <i class="fas fa-sliders-h"></i>
+                        Settings
+                    </a>
+                    <form action="/users/logout" method="GET" id="logoutForm">
+                        <button type="submit" class="menu-item logout-btn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!--  ------ POP UP WINDOW when user click on setting button ----- --->
+
+        <input type="hidden" value="<%= username %>" id="username-hidden">  
+        <input type="hidden" value="<%= user_id %>" id="userid-hidden">  
 </body>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/javascript/main.js"> </script>
@@ -223,6 +227,27 @@
     document.addEventListener('DOMContentLoaded', function() {
         const contextMenu = document.getElementById('contextMenu');
         const messagesContainer = document.querySelector('.messages');
+
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.createElement('div');
+
+        overlay.className = 'sidebar-overlay';
+        document.querySelector('.container').appendChild(overlay);
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
+        });
+
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('show');
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+            }
+        })
 
         const settingsButton = document.getElementById('settingsBtn');
         const settingsPopup = document.getElementById('settingsPopup');
