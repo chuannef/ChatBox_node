@@ -134,7 +134,6 @@ export function initializeSocket(server) {
         // io.emit('message', messageData);
 
         if (callback) {
-          console.log("CALLBACK ARE CALLED")
           callback({
             status: 'ok',
             message: messageData
@@ -150,6 +149,75 @@ export function initializeSocket(server) {
           error: `Failed to process message: ${e.message}` });
       }
     });
+
+    socket.on('search channel', async (term, callback) => {
+      try {
+        const channels = await Channel.aggregate([
+          ...(term && term.length > 0 ? [
+            {
+              $match: {
+                name: { $regex: term, $options: 'i' }
+              }
+            },
+          ] : []),
+          {
+            $lookup: {
+              from: 'messages',
+              localField: '_id',
+              foreignField: 'channel',
+              pipeline: [
+                { $sort: { sentAt: -1 } },
+                { $limit: 1 },
+                {
+                  $lookup: { from: 'users', localField: 'sender', foreignField: '_id', as: 'sender' }
+                },
+                { $unwind: '$sender' }
+              ],
+              as: 'latestMessage'
+            }
+          },
+          {
+            $lookup: {
+              from: 'messages',
+              localField: '_id',
+              foreignField: 'channel',
+              pipeline: [
+                { 
+                  $match: { 
+                    sentAt: { 
+                      $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+                    } 
+                  } 
+                },
+                { $count: 'count' }
+              ],
+              as: 'messageCount'
+            }
+          },
+          {
+            $addFields: {
+              latestMessage: { $arrayElemAt: ['$latestMessage', 0] },
+              messageCount: { 
+                $ifNull: [
+                  { $arrayElemAt: ['$messageCount.count', 0] },
+                  0
+                ]
+              }
+            }
+          }
+        ]);
+
+        if (typeof callback === 'function') {
+          callback('ok');
+        }
+
+        socket.emit('search channels results', channels);
+
+      } catch (e) {
+
+        console.error(e);
+      }
+    })
 
     socket.on('delete message', async (data, callback) => {
       try {

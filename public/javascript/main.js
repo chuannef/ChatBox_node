@@ -3,6 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const msgForm = document.getElementById('msgForm');
     const messagesContainer = document.querySelector('.messages');
     const contextMenu = document.getElementById('contextMenu');
+    const searchBoxChannel = document.getElementById('search-channel');
+    let searchTimeout;
 
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
@@ -51,6 +53,60 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('join-error', (msg) => {
         console.log(msg);
     });
+
+    searchBoxChannel.addEventListener('input', (e) => {
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+
+        searchTimeout = setTimeout(() => {
+            const term = e.target.value.trim();
+            if (term.length >= 0) {
+                if (socket.connected) {
+                    console.log(term);
+                    socket.emit('search channel', term, function(response) {
+                        if (response === 'ok') {
+                            console.log('ok');
+                        }
+                    });
+                } else {
+                    console.log('socket is not connected');
+                }
+            }
+        }, 300);
+    });
+
+    socket.on('search channels results', (channels) => {
+
+        const channelList = document.querySelector('.channel-list');
+
+        channelList.innerHTML = '';
+
+        channels.forEach((channel) => {
+
+            const channelElement = document.createElement('div');
+
+            channelElement.className = 'channel';
+            channelElement.innerHTML = `
+               <a style="text-decoration: none; color: #dcddde" href="/channel/${channel._id}" 
+                   class="channel-link" data-channel-id="${channel._id}">
+                   <div class="channel" 
+                       channel-data-id="${channel._id}">
+                       <div class="channel-icon">#</div>
+                       <div class="channel-info">
+                           <h4> ${channel.name} </h4>
+                            <p>Lastest message here...</p>
+                       </div>
+                       <div class="channel-meta">
+                           <span class="time">12:30</span>
+                            <span class="unread"> ${channel.messageCount} </span>
+                       </div>
+                   </div>
+               </a>
+            `;
+            channelList.appendChild(channelElement);
+        })
+    })
 
     const joinedChannels = new Set();
 
