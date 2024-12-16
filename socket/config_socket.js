@@ -151,6 +151,35 @@ export function initializeSocket(server) {
       }
     });
 
+    socket.on('delete message', async (data, callback) => {
+      try {
+        console.log(data);
+        const { messageId } = data;
+        if (!messageId) { throw new Error('Message not found'); }
+
+        const message = await Message.findById(messageId);
+
+        if (!message) { throw new Error('Message not found'); } 
+
+        if (message.sender._id.toString() !== socket.user._id.toString()) {
+          throw new Error("You can't delete message that's not your");
+        }
+
+        await Message.findByIdAndDelete(messageId);
+        io.to(message.channel.toString()).emit('message deleted', { messageId } );
+
+        if (callback && typeof callback === 'function') {
+          callback({ status: 'ok' });
+        }
+
+      } catch (e) {
+        console.error(e);
+        if (callback && typeof callback === 'function') {
+          callback({ status: 'error' });
+        }
+      }
+    });
+
     socket.on('disconnect', async () => {
       console.log(`${socket.id} is disconnected`);
       connectedUsers.delete(socket.user._id.toString());

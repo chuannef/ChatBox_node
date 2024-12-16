@@ -28,6 +28,8 @@ body {
 .container {
     display: flex;
     height: 100vh;
+    /* padding-left: 260px; */
+    transition: padding-left 0.3s ease;
 }
 
 /* Sidebar Styles */
@@ -277,6 +279,7 @@ body {
     max-width: 70%;
     align-self: flex-start;
     animation: slideIn 0.3s ease;
+    user-select: none; /* Prevents text selection on right click */
 }
 
 .message.own-message {
@@ -564,7 +567,7 @@ body {
 }
 
 .user-info {
-    padding: 16px;
+    padding: 3px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -674,4 +677,140 @@ body {
 
 .attach-options button:hover {
     color: #007BFF;
+}
+
+.context-menu {
+    display: none;
+    position: fixed;
+    background: #18191c;
+    border: 1px solid #2f3136;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    z-index: 1000;
+}
+
+.context-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.context-menu li {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: #dcddde;
+    font-size: 14px;
+}
+
+.context-menu li:hover {
+    background: #2f3136;
+    color: #fff;
+}
+
+.message {
+    animation: fadeIn 0.2s ease-out;
+}
+
+#msgInput:focus {
+    outline: none;
+    background: #45494f;
+}
+
+
+#msgInput {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: #40444b;
+    color: #dcddde;
+    font-size: 1rem;
+}
+
+/* .sidebar { */
+/*     position: fixed; */
+/*     left: 0; */
+/*     top: 0; */
+/*     height: 100vh; */
+/*     width: 260px; */
+/*     background: #2f3136; */
+/*     transition: transform 0.3s ease; */
+/*     z-index: 1000; */
+/* } */
+
+/* .sidebar.collapsed { */
+/*     transform: translateX(-260px); */
+/* } */
+
+/* .sidebar-toggle { */
+/*     position: fixed; */
+/*     left: 16px; */
+/*     top: 16px; */
+/*     z-index: 1001; */
+/*     background: #36393f; */
+/*     border: none; */
+/*     border-radius: 4px; */
+/*     width: 40px; */
+/*     height: 40px; */
+/*     cursor: pointer; */
+/*     color: #dcddde; */
+/* } */
+
+
+.sidebar {
+    /* width: 260px; */
+    /* height: 100vh; */
+    /* background-color: #2c2f33; */
+    /* position: fixed; */
+    /* left: 0; */
+    /* top: 0; */
+    transition: transform 0.3s ease;
+}
+
+/* Toggle button - hidden by default */
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    background-color: #7289da;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        z-index: 1000;
+        position: fixed;
+        /* left: -250px; */
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    
+    .sidebar-toggle {
+        display: block;
+    }
+
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+
+    .sidebar.show + .sidebar-overlay {
+        display: block;
+    }
 }
