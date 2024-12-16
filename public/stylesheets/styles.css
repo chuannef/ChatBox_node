@@ -273,18 +273,36 @@ body {
 }
 
 /* Message Container */
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 .message {
     display: flex;
     gap: 12px;
     max-width: 70%;
     align-self: flex-start;
-    animation: slideIn 0.3s ease;
+    /* animation: slideIn 0.3s ease; */
+    animation: messageSlideIn 0.3s ease forwards;
+    transform-origin: top;
+    will-change: transform, opacity;
+    /* transition: background-color 0.2s; */
     user-select: none; /* Prevents text selection on right click */
 }
 
 .message.own-message {
     flex-direction: row-reverse;
     align-self: flex-end;
+    animation: messageSlideIn 0.3s ease forwards;
+    transform-origin: top;
+    will-change: transform, opacity;
 }
 
 /* Avatar */
