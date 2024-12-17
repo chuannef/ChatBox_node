@@ -44,6 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
         auth: {token}
     });
 
+    /**
+     * Socket connecting
+     */
     socket.on('connect', () => {
         console.log('Connected');
         joinCurrentChannel();
@@ -54,6 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(msg);
     });
 
+    /**
+     * Search for channels
+     */
     searchBoxChannel.addEventListener('input', (e) => {
         if (searchTimeout) {
             clearTimeout(searchTimeout);
@@ -76,14 +82,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     });
 
+    /**
+     * Receive results (channels list after search) from server
+     */
     socket.on('search channels results', (channels) => {
-
         const channelList = document.querySelector('.channel-list');
 
         channelList.innerHTML = '';
-
         channels.forEach((channel) => {
-
             const channelElement = document.createElement('div');
 
             channelElement.className = 'channel';
@@ -120,6 +126,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Prevent socket io auto submit
     msgForm?.removeEventListener('submit', handleSubmit);
 
+
+    /**
+     * Send message socket.emit('chat', messageData, (response) => {}
+     */
     async function handleSubmit(e) {
         e.preventDefault();
         const channelId = getCurrentChannel();
@@ -161,6 +171,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     msgForm.addEventListener('submit', handleSubmit);
 
+    /**
+     * Join channel socket.emit('join channel')
+     */
     async function joinChannel(channelId) {
         if (!channelId) return;
 
@@ -193,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    socket.on('disconnect', (msg) => {
+    socket.on('disconnect', (_msg) => {
         joinedChannels.clear();
     });
 
@@ -285,26 +298,41 @@ document.addEventListener('DOMContentLoaded', () => {
         contextMenu.dataset.messageId = messageId;
     });
 
+
     contextMenu.addEventListener('click', (e) => {
         const action = e.target.dataset.action;
         const messageId = contextMenu.dataset.messageId;
 
         if (action === 'delete' && messageId) {
-
             socket.emit('delete message',  { messageId });
-
-            // socket.emit('delete message',  { messageId }, (response) => {
-            //     if (response.status === 'ok') {
-            //         const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
-            //         if (messageElement) messageElement.remove();
-            //     } else {
-            //         const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
-            //         if (messageElement) messageElement.remove();
-            //         console.log('Failed to delete message');
-            //     }
-            // });
         }
         contextMenu.style.display = 'none';
     });
+
+    socket.on('conversation history', ({ conversation, messages }) => {
+        console.log(conversation);
+        console.log(messages);
+    })
+
+    async function startOrOpenConversation(receiverId) {
+        console.log(receiverId);
+        socket.emit('start conversation', receiverId, function(response) {
+            console.log(response);
+            // if (response?.message = 'ok') {
+            //     console.log('ok');
+            // }
+        });
+    }
+
+    document.querySelectorAll('.channel-link[data-user-id]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const userId = this.dataset.userId;
+            if (userId) {
+                startOrOpenConversation(userId);
+            }
+        });
+    });
+    // socket.on('select channel', (channelId));
 });
 
