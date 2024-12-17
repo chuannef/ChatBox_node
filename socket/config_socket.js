@@ -4,7 +4,12 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/user.js';
 import { Channel } from '../models/channel.js';
 import { Message } from '../models/message.js';
+import { Conversation } from '../models/conversation.js';
+import { UserChannel } from '../models/userChannel.js';
+
 import {log} from "debug";
+
+import mongoose from "mongoose";
 
 export function initializeSocket(server) {
   const connectedUsers = new Map();
@@ -99,10 +104,11 @@ export function initializeSocket(server) {
       }
     });
 
-    socket.on('chat', async (data, callback) => {
-
+    socket.on('new message', async (data, callback) => {
       try {
+        console.log(data);
         const { content, channelId } = data;
+
         if (!content || !channelId) throw new Error('Invalid data');
 
         // Verify channel exists
@@ -130,7 +136,9 @@ export function initializeSocket(server) {
         };
 
         // Return message to client
-        io.to(channelId).emit('message', messageData);
+        // Test
+        socket.join(channelId);
+        io.to(channelId).emit('new message', messageData);
         // io.emit('message', messageData);
 
         if (callback) {
@@ -147,6 +155,114 @@ export function initializeSocket(server) {
         if (callback) callback({ 
           status: 'error', 
           error: `Failed to process message: ${e.message}` });
+      }
+    });
+
+    socket.on('chat user', () => {
+
+    })
+
+    /** 
+     * Handle start conversation
+     */
+    socket.on('start conversation', async(receiverId, callback) => {
+      try {
+        const senderId = socket.user._id;
+
+        let conversation = await Conversation.findOne({
+          participants: { 
+            $all: [senderId, receiverId]
+          }
+        });
+
+        // Start a new conversation
+        if (!conversation) {
+          conversation = await Conversation.create({
+            participants: [senderId, receiverId]
+          });
+        }
+        console.log(`created conversation id: ${conversation._id}`);
+
+        socket.join(`conversation:${conversation._id}`);
+
+        if (typeof callback === 'function') {
+          callback( 'ok' );
+        }
+
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    socket.on('select channel', async (channelId, callback) => {
+      try {
+        if (!channelId) return;
+
+        // Get all the current rooms 
+        const currentRooms = Array.from(socket.rooms);
+
+        const channelRooms = currentRooms.filter(room => 
+          room !== socket.id && /^[0-9a-fA-F]{24}$/.test(room)
+        );
+
+        // Leave all the rooms
+        channelRooms.forEach(room => {
+          console.log(`Leaving room: ${room}`);
+          socket.leave(room);
+        });
+        console.log(socket.rooms);
+
+        const channel = await Channel.findById(channelId);
+
+        if (!channel) {
+          if (typeof callback === 'function') {
+            callback('channel is not recognised');
+          }
+          return socket.emit('error', 'Channel not found');
+        }
+
+        const memberCount = await UserChannel.countDocuments({ channelId });
+        const messages = await Message.aggregate([
+          {
+            $match: { channel: channel._id }
+          },
+          {
+            $sort: { sentAt: -1 }
+          },
+          {
+            $limit: 50 // Get last 50 messages
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'sender',
+              foreignField: '_id',
+              as: 'sender'
+            }
+          },
+          {
+            $unwind: '$sender'
+          },
+          {
+            $sort: { sentAt: 1 } // Sort back in ascending order for display
+          }
+        ]);
+
+
+        console.log(socket.rooms);
+
+        // Join a new room
+        socket.join(channel._id);
+
+        socket.emit('channel selected', { messages, channel, memberCount });
+
+        if (typeof callback === 'function') {
+          callback('success');
+        }
+
+      } catch (e) {
+        console.error(e);
+        socket.emit('error', 'Failed to load channel');
       }
     });
 
@@ -210,19 +326,17 @@ export function initializeSocket(server) {
         if (typeof callback === 'function') {
           callback('ok');
         }
-
         socket.emit('search channels results', channels);
-
       } catch (e) {
-
         console.error(e);
       }
-    })
+    });
+
 
     socket.on('delete message', async (data, callback) => {
       try {
-        console.log(data);
-        const { messageId } = data;
+        const messageId = data;
+
         if (!messageId) { throw new Error('Message not found'); }
 
         const message = await Message.findById(messageId);
@@ -234,7 +348,9 @@ export function initializeSocket(server) {
         }
 
         await Message.findByIdAndDelete(messageId);
+
         io.to(message.channel.toString()).emit('message deleted', { messageId } );
+        // io.emit('message deleted', { messageId } );
 
         if (callback && typeof callback === 'function') {
           callback({ status: 'ok' });
@@ -274,8 +390,7 @@ export function runningSocket(server) {
     socket.on('chat message', (msg) => {
       console.log(msg);
       io.emit('chat message', msg);
-    })
-
+    });
   });
 
 }
