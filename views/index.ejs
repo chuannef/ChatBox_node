@@ -9,68 +9,105 @@
     <title>Web Chat Interface</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/stylesheets/styles.css">
-    
+
 </head>
 <body>
-    <div class="container">
-        <button id="sidebarToggle" class="sidebar-toggle">
-            <span class="toggle-icon">☰</span>
-        </button>
-        <div class="sidebar">
-            <div class="user-profile">
-                <div class="avatar">
-                    <!-- <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar"> -->
-                    <% if (locals.username) { %>
-                        <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=<%= username %>" alt="Avatar" class="popup-avatar">
-                    <% } else { %>
-                        <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar">
-                    <% } %>
-                    <span class="status online"></span>
-                </div>
-                <div class="user-info">
-                    <% if (locals.username) { %>
-                        <h3><%= username %></h3>
-                    <% } else { %>
-                        <h3>Annonymous</h3>
-                    <% } %>
-                    <p class="status-text">Online</p>
-                </div>
-                <button class="settings-btn" id="settingsBtn">
-                    <i class="fas fa-cog"></i>
+<div class="container">
+    <button id="sidebarToggle" class="sidebar-toggle">
+        <span class="toggle-icon">☰</span>
+    </button>
+    <div class="sidebar">
+        <div class="user-profile">
+            <div class="avatar">
+                <!-- <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar"> -->
+                <% if (locals.username) { %>
+                    <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=<%= username %>" alt="Avatar"
+                         class="popup-avatar">
+                <% } else { %>
+                    <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar">
+                <% } %>
+                <span class="status online"></span>
+            </div>
+            <div class="user-info">
+                <% if (locals.username) { %>
+                    <h3><%= username %></h3>
+                <% } else { %>
+                    <h3>Annonymous</h3>
+                <% } %>
+                <p class="status-text">Online</p>
+            </div>
+            <button class="settings-btn" id="settingsBtn">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="search-channel" placeholder="Search channels...">
+        </div>
+
+        <div class="channels">
+            <div class="channels-header">
+                <h4>Channels</h4>
+                <button class="add-channel-btn">
+                    <i class="fas fa-plus"></i>
                 </button>
             </div>
 
-            <div class="search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" id="search-channel" placeholder="Search channels...">
-            </div>
-
-            <div class="channels">
-                <div class="channels-header">
-                    <h4>Channels</h4>
-                    <button class="add-channel-btn">
-                        <i class="fas fa-plus"></i>
-                    </button>
+            <div class="channel-list">
+                <% if (locals.channels && channels.length > 0) { %>
+                    <% channels.forEach((channel) => { %>
+                <div style="text-decoration: none; color: #dcddde"
+                     class="channel-link" data-channel-id="<%= channel._id %>">
+                    <% if (locals.currentChannelId) { %>
+                    <div class="channel <%= currentChannelId.toString() === channel._id.toString() ? 'active' : '' %>"
+                         channel-data-id="<%= channel._id %>">
+                        <% } else { %>
+                        <div class="channel" channel-data-id="<%= channel._id %>">
+                            <% } %>
+                            <div class="channel-icon">#</div>
+                            <div class="channel-info">
+                                <h4> <%= channel.name %> </h4>
+                                <p>Latest message here...</p>
+                            </div>
+                            <div class="channel-meta">
+                                <span class="time">12:30</span>
+                                <span class="unread"> <%= channel.messageCount %> </span>
+                            </div>
+                        </div>
+                    </div>
+                    <% }) %>
+                    <% } %>
                 </div>
 
                 <div class="channel-list">
-                    <% if (locals.channels && channels.length > 0) {  %>
-                        <% channels.forEach((channel) => { %>
-                            <a style="text-decoration: none; color: #dcddde" href="/channel/<%= channel._id %>" 
-                                class="channel-link" data-channel-id="<%= channel._id %>">
-                                <div class="channel <%= currentChannelId.toString() === channel._id.toString() ? 'active'  : '' %>" 
-                                    channel-data-id="<%= channel._id %>">
-                                    <div class="channel-icon">#</div>
+                    <% if (locals.users && users.length > 0) { %>
+                        <% users.forEach((user) => { %>
+                            <div style="text-decoration: none; color: #dcddde" class="channel-link"
+                                 data-user-id="<%= user._id %>"
+                                 data-username="<%= user.username %>"
+                            >
+                                <div class="channel" user-data-id="<%= user._id %>">
+                                    <div class="channel-icon">
+                                        <%= user.username.charAt(0).toUpperCase() %>
+                                    </div>
                                     <div class="channel-info">
-                                        <h4> <%= channel.name %> </h4>
-                                        <p>Latest message here...</p>
+                                        <h4> <%= user.username %> </h4>
+                                        <p><%= user.lastMessage ? user.lastMessage.content : 'No messages yet' %></p>
                                     </div>
                                     <div class="channel-meta">
-                                        <span class="time">12:30</span>
-                                        <span class="unread"> <%= channel.messageCount %> </span>
+                                        <% if (user.lastMessage) { %>
+                                            <span class="time"><%= new Date(user.lastMessage.sentAt).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                }) %></span>
+                                        <% } %>
+                                        <% if (user.conversation && user.conversation.unreadCount) { %>
+                                            <span class="unread"><%= user.conversation.unreadCount %></span>
+                                        <% } %>
                                     </div>
                                 </div>
-                            </a>
+                            </div>
                         <% }) %>
                     <% } %>
                 </div>
@@ -78,120 +115,35 @@
         </div>
 
         <div class="chat-area">
-            <div class="chat-header">
-                <div class="chat-header-info">
-                    <h2>#general</h2>
-                    <p>32 members</p>
+            <div class="welcome-container">
+                <div class="welcome-icon">
+                    <i class="fas fa-comments"></i>
                 </div>
-                <div class="chat-header-actions">
-                    <button><i class="fas fa-user-plus"></i></button>
-                    <button><i class="fas fa-info-circle"></i></button>
-                </div>
-            </div>
-
-            <div class="messages">
-                <% if (locals.messages && messages.length > 0) { %>
-                    <% let lastMessageDate = null; %>
-                    <% messages.forEach((msg) => { %>
-                        <% const messageDate = new Date(msg.sentAt).toDateString(); %>
-
-                        <% if (lastMessageDate !== messageDate) { %>
-                            <div class="date-divider">
-                                <span><%= messageDate === new Date().toDateString() ? 'Today' : messageDate %></span>
-                            </div>
-                            <% lastMessageDate = messageDate; %>
-                        <% } %>
-
-                        <% if (msg.sender !== null) { %>
-                            <div class="message <%= msg.sender._id.toString() === user_id ? 'own-message' : '' %>"
-                                 data-message-id="<%= msg._id %>" data-sender-id="<%= msg.sender._id %>">
-                                <!-- <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(msg.sender.username) %>" --> 
-                                <!--      alt="avatar" --> 
-                                <!--      class="message-avatar"> -->
-
-                                <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=<%= msg.sender.username %>" alt="Avatar" class="message-avatar">
-
-                                <div class="message-content">
-                                    <div class="message-header">
-                                        <h4><%= msg.sender._id.toString() === user_id ? 'You' : msg.sender.username %></h4>
-                                        <span class="time">
-                                            <%= new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %>
-                                        </span>
-                                    </div>
-                                    <p><%= msg.content %></p>
-                                </div>
-                            </div>
-                        <% } else { %>
-                            <div class="message">
-                                <img src="https://ui-avatars.com/api/?name=John" 
-                                     alt="avatar" 
-                                     class="message-avatar">
-                                <div class="message-content">
-                                    <div class="message-header">
-                                        <h4>ERROR: Cannot read username</h4>
-                                        <span class="time">
-                                            <%= new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %>
-                                        </span>
-                                    </div>
-                                    <p><%= msg.content %></p>
-                                </div>
-                            </div>
-                        <% } %>
-                    <% }) %>
-                <% } else { %>
-                <div class="no-messages">
-                    <p>No messages in this channel yet. Be the first to say something!</p>
-                    <% } %>
-                <div class="date-divider">
-                    <span>Today</span>
-                </div>
-                <!-- <div class="message own-message"> -->
-                <!--     <img src="https://ui-avatars.com/api/?name=ducchinhpro123" alt="avatar" class="message-avatar"> -->
-                <!--     <div class="message-content"> -->
-                <!--         <div class="message-header"> -->
-                <!--             <h4>You</h4> -->
-                <!--             <span class="time">12:31 PM</span> -->
-                <!--         </div> -->
-                <!--         <p>Hello! How's everyone doing?</p> -->
-                <!--     </div> -->
-                <!-- </div> -->
-            </div>
-
-            <div class="input-area">
-                <div class="attach-wrapper">
-                    <button class="attach-btn">
+                <h1>Welcome, <%= username %> </h1>
+                <p>Select a channel to start chatting</p>
+                <div class="welcome-tips">
+                    <div class="tip">
+                        <i class="fas fa-hashtag"></i>
+                        <span>Click on a channel from the left sidebar</span>
+                    </div>
+                    <div class="tip">
+                        <i class="fas fa-users"></i>
+                        <span>Join conversations with other members</span>
+                    </div>
+                    <div class="tip">
                         <i class="fas fa-plus-circle"></i>
-                    </button>
-                    <div class="attach-options">
-                        <button type="button"><i class="far fa-smile"></i></button>
-                        <button type="button"><i class="fas fa-paperclip"></i></button>
+                        <span>Or create a new channel to start fresh</span>
                     </div>
                 </div>
-                
-                <form class="input-wrapper" id="msgForm">
-                    <input id="msgInput" type="text" placeholder='Message # <%= currentChannel.name %>'>
-                    <!-- <div class="input-actions">
-                        <button type="button"><i class="far fa-smile"></i></button>
-                        <button type="button"><i class="fas fa-paperclip"></i></button>
-                    </div> -->
-                    <button class="send-btn" type="submit">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </form>
             </div>
-        </div>
-        <div id="contextMenu" class="context-menu">
-            <ul>
-                <li data-action="delete">Delete Message</li>
-            </ul>
-        </div>
         </div>
 
         <!--  POP UP WINDOW when user click on setting button -->
         <div class="settings-popup" id="settingsPopup">
             <div class="popup-content">
                 <div class="user-info">
-                    <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=<%= username %>" alt="Avatar" class="popup-avatar">
+                    <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=<%= username %>" alt="Avatar"
+                         class="popup-avatar">
                     <div class="user-details">
                         <span class="username"><%= username %></span>
                         <span class="status">Online</span>
@@ -218,81 +170,13 @@
         </div>
         <!--  ------ POP UP WINDOW when user click on setting button ----- --->
 
-        <input type="hidden" value="<%= username %>" id="username-hidden">  
-        <input type="hidden" value="<%= user_id %>" id="userid-hidden">  
+    </div>
+    <input type="hidden" value="<%= username %>" id="username-hidden">
+    <input type="hidden" value="<%= user_id %>" id="userid-hidden">
+</div>
 </body>
 <script src="/socket.io/socket.io.js"></script>
-<script src="/javascript/main.js"> </script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const contextMenu = document.getElementById('contextMenu');
-        const messagesContainer = document.querySelector('.messages');
-
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebar = document.querySelector('.sidebar');
-        const overlay = document.createElement('div');
-
-        overlay.className = 'sidebar-overlay';
-        document.querySelector('.container').appendChild(overlay);
-
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('show');
-        });
-
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('show');
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
-            }
-        })
-
-        const settingsButton = document.getElementById('settingsBtn');
-        const settingsPopup = document.getElementById('settingsPopup');
-
-        function positionPopup() {
-            const btnRect = settingsBtn.getBoundingClientRect();
-            settingsPopup.style.top = btnRect.bottom + 8 + 'px';
-            settingsPopup.style.right = window.innerWidth - btnRect.right - 40 + 'px';
-        }
-
-        // Handle the case when user click on background
-        document.addEventListener('click', (e) => {
-            if (!settingsButton.contains(e.target) && !settingsPopup.contains(e.target)) {
-                settingsPopup.classList.remove('active');
-            }
-            contextMenu.style.display = 'none';
-        });
-
-
-        // Toggle popup window
-        settingsButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isActive = settingsPopup.classList.contains('active');
-            if (!isActive) {
-                positionPopup();
-            }
-            settingsPopup.classList.toggle('active');
-        });
-    })
-
-    const attachBtn = document.querySelector('.attach-btn');
-    const attachOptions = document.querySelector('.attach-options');
-
-    attachBtn.addEventListener('click', () => {
-        // Toggle hiển thị bảng lựa chọn
-        attachOptions.style.display = attachOptions.style.display === 'flex' ? 'none' : 'flex';
-    });
-
-    // Ẩn bảng khi nhấn ra ngoài
-    document.addEventListener('click', (event) => {
-        if (!attachBtn.contains(event.target) && !attachOptions.contains(event.target)) {
-            attachOptions.style.display = 'none';
-        }
-    });
-
-</script>
+<script src="/javascript/main.js"></script>
+<script src="/javascript/overall.js"></script>
 
 </html>
