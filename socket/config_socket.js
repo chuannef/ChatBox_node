@@ -349,8 +349,10 @@ export function initializeSocket(server) {
 
         await Message.findByIdAndDelete(messageId);
 
-        io.to(message.channel.toString()).emit('message deleted', { messageId } );
-        // io.emit('message deleted', { messageId } );
+        // io.to(message.channel.toString()).emit('message deleted', { messageId } );
+        io.emit('message deleted', { messageId } );
+
+        console.log('Message deleted');
 
         if (callback && typeof callback === 'function') {
           callback({ status: 'ok' });
@@ -359,7 +361,7 @@ export function initializeSocket(server) {
       } catch (e) {
         console.error(e);
         if (callback && typeof callback === 'function') {
-          callback({ status: 'error' });
+          callback({ status: 'error', error: 'There something went wrong' });
         }
       }
     });

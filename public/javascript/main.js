@@ -269,28 +269,67 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function appendNewMessage(messageData) {
+
         const messagesContainer = document.querySelector('.messages');
 
         // Check if we need to add a new date divider
         const messageDate = new Date(messageData.sentAt).toDateString();
-        const lastDateDivider = messagesContainer.querySelector('.date-divider:last-of-type span');
-        const lastMessageDate = lastDateDivider ? lastDateDivider.textContent : null;
+        // const lastDateDivider = messagesContainer.querySelector('.date-divider:last-of-type span');
+        // const lastMessageDate = lastDateDivider ? lastDateDivider.textContent : null;
 
         // If it's a new date, add a new date divider
-        if (messageDate !== lastMessageDate && messageDate !== 'Today') {
-            const dateDivider = createDateDivider(messageDate);
-            messagesContainer.appendChild(dateDivider);
-        }
+        // if (messageDate !== lastMessageDate && messageDate !== 'Today') {
+        //     const dateDivider = createDateDivider(messageDate);
+        //     messagesContainer.appendChild(dateDivider);
+        // }
 
         // Create and append the new message
-        const messageElement = createMessage(messageData);
-        messagesContainer.appendChild(messageElement);
+        // const messageElement = createMessage(messageData);
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${messageData.sender._id === currentUserId ? 'own-message' : ''}`;
+        messageDiv.dataset.messageId = messageData._id;
+        messageDiv.dataset.senderId = messageData.sender._id;
+
+        messageDiv.innerHTML = `
+        <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=${messageData.sender.username}"
+             alt="Avatar" class="message-avatar">
+        <div class="message-content">
+            <div class="message-header">
+                <h4>${messageData.sender._id === currentUserId ? 'You' : messageData.sender.username}</h4>
+                <span class="time">
+                    ${new Date(messageData.sentAt).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+        })}
+                </span>
+            </div>
+            <p>${escapeHTML(messageData.content)}</p>
+        </div>
+    `;
+
+        if (messageData.sender._id === currentUserId) {
+            messageDiv.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                const contextMenu = document.getElementById('contextMenu');
+                console.log(contextMenu);
+
+                if (contextMenu) {
+                    contextMenu.style.display = 'block';
+                    contextMenu.style.left = e.pageX + 'px';
+                    contextMenu.style.top = e.pageY + 'px';
+                    contextMenu.dataset.messageId = messageData._id;
+                }
+            });
+        }
+
+        messagesContainer.appendChild(messageDiv);
 
         // Scroll to the new message
         scrollToBottom(messagesContainer);
     }
 
     function createMessage(msg) {
+
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${msg.sender._id === currentUserId ? 'own-message' : ''}`;
         messageDiv.dataset.messageId = msg._id;
@@ -313,10 +352,25 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     `;
 
-        // Add hover effect for own messages
         if (msg.sender._id === currentUserId) {
-            messageDiv.addEventListener('contextmenu', handleMessageContextMenu);
+            messageDiv.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                const contextMenu = document.getElementById('contextMenu');
+                console.log(contextMenu);
+
+                if (contextMenu) {
+                    contextMenu.style.display = 'block';
+                    contextMenu.style.left = e.pageX + 'px';
+                    contextMenu.style.top = e.pageY + 'px';
+                    contextMenu.dataset.messageId = msg._id;
+                }
+            });
         }
+
+        // Add hover effect for own messages
+        // if (msg.sender._id === currentUserId) {
+        //     messageDiv.addEventListener('contextmenu', handleMessageContextMenu);
+        // }
 
         return messageDiv;
     }
@@ -340,54 +394,6 @@ document.addEventListener('DOMContentLoaded', () => {
         div.textContent = str;
         return div.innerHTML;
     }
-
-    // Handle right-click context menu for messages
-    function handleMessageContextMenu(e) {
-        e.preventDefault();
-        const contextMenu = document.getElementById('contextMenu');
-        if (contextMenu) {
-            contextMenu.style.display = 'block';
-            contextMenu.style.left = `${e.pageX}px`;
-            contextMenu.style.top = `${e.pageY}px`;
-            contextMenu.dataset.messageId = this.dataset.messageId;
-        }
-    }
-
-    // Add some CSS for the new message indicator
-    const style = document.createElement('style');
-    style.textContent = `
-    .new-message-indicator {
-        position: absolute;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: none;
-        animation: fadeIn 0.3s ease-in-out;
-    }
-
-    .new-message-indicator button {
-        background: #7289da;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 16px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    }
-
-    .new-message-indicator button:hover {
-        background: #5b6eae;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translate(-50%, 10px); }
-        to { opacity: 1; transform: translate(-50%, 0); }
-    }
-`;
-    document.head.appendChild(style);
 
     function showErrorToast(message) {
         const toast = document.createElement('div');
@@ -420,6 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (response?.status === 'ok') {
                                 resolve(response);
                             } else {
+                                // showErrorToast("error");
                                 reject(new Error(response?.message));
                             }
                         });
@@ -468,10 +475,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const deleteOption = contextMenu.querySelector('[data-action="delete"]');
 
-        deleteOption.addEventListener('click', function () {
+        deleteOption.addEventListener('click', async function() {
             const messageId = contextMenu.dataset.messageId;
             if (messageId) {
-                console.log('emit to server');
                 socket.emit('delete message', messageId);
             }
             contextMenu.style.display = 'none';
@@ -610,104 +616,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return header;
     }
 
-    function updateChatArea(messages, channel, memberCount) {
-        const chatArea = document.querySelector('.chat-area');
-
-        const headerHTML = `
-        <div class="chat-header">
-            <div class="chat-header-info">
-                <h2>#${channel.name}</h2>
-                <p>${memberCount} members</p>
-            </div>
-            <div class="chat-header-actions">
-                <button><i class="fas fa-user-plus"></i></button>
-                <button><i class="fas fa-info-circle"></i></button>
-            </div>
-        </div>
-        `;
-
-        let messagesHTML = '<div class="messages">';
-
-        if (messages && messages.length > 0) {
-            let lastMessageDate = null;
-
-            messages.forEach(msg => {
-                const messageDate = new Date(msg.sentAt).toDateString();
-
-                // Add date separator if it's a new date
-                if (lastMessageDate !== messageDate) {
-                    messagesHTML += `
-                    <div class="date-divider">
-                        <span>${messageDate === new Date().toDateString() ? 'Today' : messageDate}</span>
-                    </div>
-                `;
-                    lastMessageDate = messageDate;
-                }
-                if (msg.sender) {
-                    messagesHTML += `
-                    <div class="message ${msg.sender._id.toString() === currentUserId ? 'own-message' : ''}"
-                         data-message-id="${msg._id}" data-sender-id="${msg.sender._id}">
-                        <img src="https://api.dicebear.com/9.x/pixel-art/svg?seed=${msg.sender.username}"
-                             alt="Avatar" class="message-avatar">
-                        <div class="message-content">
-                            <div class="message-header">
-                                <h4>${msg.sender._id.toString() === currentUserId ? 'You' : msg.sender.username}</h4>
-                                <span class="time">
-                                    ${new Date(msg.sentAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    })}
-                                </span>
-                            </div>
-                            <p>${msg.content}</p>
-                        </div>
-                    </div>
-                `;
-                } else {
-                    messagesHTML += `
-                        <div class="no-messages">
-                            <p>No messages in this channel yet. Be the first to say something!</p>
-                        </div>
-                    `;
-                }
-                messagesHTML += `
-                        <div class="date-divider">
-                            <span>Today</span>
-                        </div>
-                    </div>`;
-
-                const inputAreaHTML = `
-                    <div class="input-area">
-                        <div class="attach-wrapper">
-                            <button class="attach-btn">
-                                <i class="fas fa-plus-circle"></i>
-                            </button>
-                            <div class="attach-options">
-                                <button type="button"><i class="far fa-smile"></i></button>
-                                <button type="button"><i class="fas fa-paperclip"></i></button>
-                            </div>
-                        </div>
-
-                        <form class="input-wrapper" id="msgForm">
-                            <input id="msgInput" type="text" placeholder="Message # ${channel.name}">
-                            <button class="send-btn" type="submit">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </form>
-                    </div>
-                    <div id="contextMenu" class="context-menu">
-                        <ul>
-                            <li data-action="delete">Delete Message</li>
-                        </ul>
-                    </div>
-                `;
-
-                chatArea.innerHTML = headerHTML + messagesHTML + inputAreaHTML;
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            });
-        }
-    }
-
     socket.on('channel error', (response) => {
         if (response) {
             alert(response);
@@ -716,10 +624,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     socket.on('message deleted', (data) => {
         const { messageId } = data;
-        const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
 
-        if (messageElement) { messageElement.remove(); }
-    })
+        try {
+            const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+
+            const nextElement = messageElement.nextElementSibling;
+            const prevElement = messageElement.previousElementSibling;
+
+            messageElement.remove(); 
+
+            if (nextElement?.classList.contains('date-divider') && 
+                prevElement?.classList.contains('date-divider')) {
+                nextElement.remove();
+            }
+
+        } catch (e) {
+            console.log(e);
+        }
+    });
 
     function isToday(date) {
         const today = new Date();
