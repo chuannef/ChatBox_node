@@ -39,8 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_RECONNECT_ATTEMPTS = 3;
 
     const socket = io({
-        ackTimeout: 10000,
-        retries: MAX_RECONNECT_ATTEMPTS,
+        reconnection: true,
         transports: ['websocket'],
         upgrade: false,
         auth: {token}
