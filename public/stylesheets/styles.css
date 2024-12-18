@@ -273,18 +273,36 @@ body {
 }
 
 /* Message Container */
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 .message {
     display: flex;
     gap: 12px;
     max-width: 70%;
     align-self: flex-start;
-    animation: slideIn 0.3s ease;
+    /* animation: slideIn 0.3s ease; */
+    animation: messageSlideIn 0.3s ease forwards;
+    transform-origin: top;
+    will-change: transform, opacity;
+    /* transition: background-color 0.2s; */
     user-select: none; /* Prevents text selection on right click */
 }
 
 .message.own-message {
     flex-direction: row-reverse;
     align-self: flex-end;
+    animation: messageSlideIn 0.3s ease forwards;
+    transform-origin: top;
+    will-change: transform, opacity;
 }
 
 /* Avatar */
@@ -813,4 +831,188 @@ body {
     .sidebar.show + .sidebar-overlay {
         display: block;
     }
+}
+
+
+
+.chat-area {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #36393f;
+    position: relative;
+}
+
+.welcome-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2rem;
+    text-align: center;
+    color: #dcddde;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.welcome-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    color: #7289da;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+.welcome-container h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+    font-weight: 600;
+}
+
+.welcome-container p {
+    font-size: 1.1rem;
+    color: #72767d;
+    margin-bottom: 2rem;
+}
+
+.welcome-tips {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 400px;
+    width: 100%;
+}
+
+.tip {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(79, 84, 92, 0.16);
+    border-radius: 8px;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.tip:hover {
+    transform: translateX(5px);
+    background: rgba(79, 84, 92, 0.32);
+}
+
+.tip i {
+    font-size: 1.2rem;
+    margin-right: 1rem;
+    color: #7289da;
+    width: 24px;
+    text-align: center;
+}
+
+.tip span {
+    color: #dcddde;
+    font-size: 0.95rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .welcome-container {
+        padding: 1rem;
+    }
+
+    .welcome-icon {
+        font-size: 3rem;
+    }
+
+    .welcome-container h1 {
+        font-size: 1.5rem;
+    }
+
+    .welcome-container p {
+        font-size: 1rem;
+    }
+
+    .welcome-tips {
+        max-width: 300px;
+    }
+}
+
+.chat-area::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(114, 137, 218, 0.1), transparent);
+    pointer-events: none;
+}
+
+.chat-area::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.4' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+.error-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #f04747;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 4px;
+    animation: slideIn 0.3s ease-out;
+    z-index: 1000;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+}
+
+.test-fade {
+    animation: fadeOut 0.3s ease-out;
 }
