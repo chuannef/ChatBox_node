@@ -138,6 +138,39 @@
             </div>
         </div>
 
+        <!--  POP UP WINDOW when user click on add button to add a new channel -->
+        <div id="createChannelModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Create New Channel</h3>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <form id="createChannelForm">
+                    <div class="form-group">
+                        <label for="channelName">Channel Name</label>
+                        <input type="text" 
+                               id="channelName" 
+                               name="channelName" 
+                               placeholder="e.g., general, announcements"
+                               maxlength="30"
+                               required>
+                        <small class="form-hint">Only lowercase letters, numbers, hyphens, and underscores allowed</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="channelDescription">Description (Optional)</label>
+                        <textarea id="channelDescription" 
+                                  name="channelDescription" 
+                                  placeholder="What's this channel about?"
+                                  maxlength="120"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary cancel-btn">Cancel</button>
+                        <button type="submit" class="btn-primary">Create Channel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!--  POP UP WINDOW when user click on setting button -->
         <div class="settings-popup" id="settingsPopup">
             <div class="popup-content">
