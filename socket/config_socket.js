@@ -210,7 +210,6 @@ export function initializeSocket(server) {
           console.log(`Leaving room: ${room}`);
           socket.leave(room);
         });
-        console.log(socket.rooms);
 
         const channel = await Channel.findById(channelId);
 
@@ -332,6 +331,50 @@ export function initializeSocket(server) {
       }
     });
 
+
+    socket.on('create channel', async (data, callback) => {
+      try {
+        const channelName = data.name.toLowerCase();
+
+        if (!/^[a-z0-9-_]+$/.test(channelName)) {
+          // Invalid channel name
+          return callback({
+            status: 'error',
+            error: 'Channel name can only contain lowercase letters, numbers, hyphens, and underscores'
+          });
+        }
+
+        const existingChannel = await Channel.findOne({ channelName });
+        if (existingChannel) {
+          return callback({
+            status: 'error',
+            error: 'Channel name already exists'
+          });
+        }
+
+        const newChannel = new Channel({
+          name: channelName,
+          description: data.description,
+          createdBy: socket.user._id,
+          members: [socket.user._id]
+        });
+
+        await newChannel.save();
+
+        io.emit('channel created', {
+          _id: newChannel._id,
+          name: newChannel.name,
+          description: newChannel.description
+        });
+
+        callback({ status: 'ok', message: 'A new channel created successfully' });
+
+      } catch (e) {
+      }
+      // if (typeof callback === 'function') {
+      //   callback({ status: 'ok' });
+      // }
+    });
 
     socket.on('delete message', async (data, callback) => {
       try {

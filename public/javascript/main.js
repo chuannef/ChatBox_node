@@ -6,12 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // const searchBoxChannel = document.getElementById('search-channel');
     // let searchTimeout;
 
-    let currentChannel = null;
+    
 
-    // messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-
-    // const CURRENT_USER = '<%= username %>';
     const currentUsername = document.getElementById("username-hidden").value;
     const currentUserId = document.getElementById("userid-hidden").value;
 
@@ -51,6 +47,127 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('connect', () => {
         console.log('Connected');
         joinCurrentChannel();
+    });
+
+    let currentChannel = null;
+
+    const modal = document.getElementById('createChannelModal');
+    const addChannelBtn = document.querySelector('.add-channel-btn');
+    const closeModal = document.querySelector('.close-modal');
+    const cancelBtn = document.querySelector('.cancel-btn');
+    const createChannelForm = document.getElementById('createChannelForm');
+    const channelNameInput = document.getElementById('channelName');
+
+    addChannelBtn.addEventListener('click', (e) => {
+        modal.style.display = 'block';
+        channelNameInput.focus();
+    });
+
+    function hideModal() {
+        modal.style.display = 'none';
+        createChannelForm.reset();
+    }
+
+    closeModal.addEventListener('click', hideModal);
+    cancelBtn.addEventListener('click', hideModal);
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            hideModal();
+        }
+    });
+
+    function showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = message;
+        
+        const existingError = createChannelForm.querySelector('.error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        createChannelForm.insertBefore(errorDiv, createChannelForm.firstChild);
+    }
+
+    createChannelForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitButton = createChannelForm.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        try {
+            const formData = {
+                name: channelNameInput.value.trim(),
+                description: document.getElementById('channelDescription').value.trim()
+            };
+            socket.emit('create channel', formData, (response) => {
+                if (response.status === 'ok') {
+                    hideModal();
+                    showSuccessToast(response.message);
+                } else {
+                    hideModal();
+                    showErrorToast(response.error);
+                }
+                submitButton.disabled = false;
+            })
+        } catch (e) {
+            console.log(e);
+        }
+    });
+
+    /**
+     * Add a new channel to the left sidebar
+     * @param {Object} channel - contains _id, name, description...
+     */
+    function addChannelToList(channel) {
+        const channelList = document.querySelector('.channel-list');
+        if (!channelList) {
+            console.error('Channel list container not found');
+            return;
+        }
+
+        // Create channel link container
+        const channelLink = document.createElement('div');
+        channelLink.className = 'channel-link';
+        channelLink.style.textDecoration = 'none';
+        channelLink.style.color = '#dcddde';
+        channelLink.setAttribute('data-channel-id', channel._id);
+
+        // Create channel element
+        const channelElement = document.createElement('div');
+        channelElement.className = 'channel';
+        channelElement.setAttribute('channel-data-id', channel._id);
+
+        // Create channel content
+        channelElement.innerHTML = `
+            <div class="channel-icon">#</div>
+            <div class="channel-info">
+                <h4>${channel.name}</h4>
+                <p>Latest message here...</p>
+            </div>
+            <div class="channel-meta">
+                <span class="time">Just now</span>
+                <span class="unread">0</span>
+            </div>
+        `;
+
+        channelLink.addEventListener('click', () => {
+            // Remove active class from all channels
+            document.querySelectorAll('.channel').forEach(ch => {
+                ch.classList.remove('active');
+            });
+
+            // Add active class to clicked channel
+            channelElement.classList.add('active');
+
+            joinChannel(channel._id);
+        });
+
+        // Assemble and insert the new channel
+        channelLink.appendChild(channelElement);
+        channelList.insertAdjacentElement('afterbegin', channelLink);
+    }
+
+    socket.on('channel created', (data) => {
+        addChannelToList(data);
     });
 
     // If server send errors. Listen to it
@@ -113,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             channelList.appendChild(channelElement);
         })
-    })
+    });
 
     const joinedChannels = new Set();
 
@@ -394,6 +511,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
 
+    function showSuccessToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'success-toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+
     function showErrorToast(message) {
         const toast = document.createElement('div');
         toast.className = 'error-toast';
@@ -425,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (response?.status === 'ok') {
                                 resolve(response);
                             } else {
-                                // showErrorToast("error");
+                                showErrorToast("There something went wrong");
                                 reject(new Error(response?.message));
                             }
                         });
