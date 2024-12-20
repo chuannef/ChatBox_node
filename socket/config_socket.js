@@ -1,6 +1,10 @@
 import { Server } from "socket.io";
 import jwt from 'jsonwebtoken';
 
+import { availableParallelism } from 'node:os';
+import cluster from 'node:cluster';
+import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
+
 import { User } from '../models/user.js';
 import { Channel } from '../models/channel.js';
 import { Message } from '../models/message.js';
@@ -11,13 +15,13 @@ import {log} from "debug";
 
 import mongoose from "mongoose";
 
+import IndexController from '../controller/index_controller.js';
+
 export function initializeSocket(server) {
   const connectedUsers = new Map();
-  // const userChannels = new Map();
 
   const io = new Server(server, {
     connectionStateRecovery: {},
-    // adapter: createAdapter(),
   });
 
   // socket authentication
@@ -37,7 +41,7 @@ export function initializeSocket(server) {
           iat: 1734176250,
           exp: 1734179850
         }
-       */
+        */
       const user = await User.findById(decoded.user_id);
       if (!user) {
         return next(new Error('User not found'));
@@ -60,7 +64,16 @@ export function initializeSocket(server) {
   io.on('connection', async (socket) => {
     console.log(`${socket.user.username} is connected`);
     // TODO: implement user online status 
-    // await User.findByIdAndUpdate(socket.user._id);
+
+    if (socket.user?._id) {
+      /*
+       * this is because when we need to send a notification to a user
+       * we will need to know their address and this socket.user._id will be 
+       * the address.
+       */
+      socket.join(socket.user?._id.toString());
+      console.log(`User ${socket.user.username} joined session: ${socket.user._id}`);
+    }
 
     // socket.emit('join channel', channelId)
     socket.on('join channel', async (channelId, callback) => {
@@ -71,7 +84,7 @@ export function initializeSocket(server) {
         }
 
         const existingRooms = Array.from(socket.rooms);
-        
+
         // Leave all other channels
         await Promise.all(existingRooms.map(room => {
           if (room !== socket.id) {
@@ -104,9 +117,31 @@ export function initializeSocket(server) {
       }
     });
 
+    socket.on('delete channel', async (channelId, callback) => {
+      try {
+        if (!channelId) {
+          return callback({ status: 'error', error: 'ChannelId is invalid' });
+        }
+
+        const existingChannel = await Channel.findById(channelId);
+        if (!existingChannel) {
+          return callback({ status: 'error', error: 'Channel not found' });
+        }
+
+        await Channel.findByIdAndDelete(channelId);
+
+        callback({ status: 'ok', message: 'Delete successfully' });
+
+      } catch (e) {
+        console.error(e);
+        return callback({ status: 'error', error: 'There something went wrong, please log out and login back.' });
+      }
+    });
+    
+
     socket.on('new message', async (data, callback) => {
       try {
-        console.log(data);
+        // console.log(data);
         const { content, channelId } = data;
 
         if (!content || !channelId) throw new Error('Invalid data');
@@ -124,10 +159,16 @@ export function initializeSocket(server) {
 
         await message.save();
 
+        // Check if user have already joined in
         const userChannel = await UserChannel.findOne({
           userId: socket.user._id,
           channelId: channelId,
         });
+
+        if (!userChannel || userChannel?.status === 'pending' || userChannel?.status === 'rejected') {
+          return callback({ status: 'error', error: 'You can not chat on this channel unless you have taken part in' });
+        }
+
         if (!userChannel) {
           const newUserChannel = new UserChannel({
             userId: socket.user._id,
@@ -137,7 +178,7 @@ export function initializeSocket(server) {
 
           await newUserChannel.save();
           await Channel.findByIdAndUpdate(channelId, {
-              $push: { participants: newUserChannel._id }
+            $push: { participants: newUserChannel._id }
           });
 
         }
@@ -153,11 +194,7 @@ export function initializeSocket(server) {
           sentAt: message.sentAt
         };
 
-        // Return message to client
-        // Test
-        socket.join(channelId);
-        io.to(channelId).emit('new message', messageData);
-        // io.emit('message', messageData);
+        io.to(channelId.toString()).emit('new message', messageData);
 
         if (callback) {
           callback({
@@ -225,8 +262,10 @@ export function initializeSocket(server) {
 
         // Leave all the rooms
         channelRooms.forEach(room => {
-          console.log(`Leaving room: ${room}`);
-          socket.leave(room);
+          if (room !== socket.user._id.toString()) {
+            console.log(`Leaving room: ${room}`);
+            socket.leave(room);
+          }
         });
 
         const channel = await Channel.findById(channelId);
@@ -265,13 +304,9 @@ export function initializeSocket(server) {
           }
         ]);
 
-
-        console.log(socket.rooms);
-
-        // Join a new room
-        socket.join(channel._id);
-
-        socket.emit('channel selected', { messages, channel, memberCount });
+        socket.join(channel._id.toString());
+        io.to(socket.user._id.toString()).emit('channel selected', { messages, channel, memberCount });
+        // socket.emit('channel selected', { messages, channel, memberCount });
 
         if (typeof callback === 'function') {
           callback('success');
@@ -283,64 +318,165 @@ export function initializeSocket(server) {
       }
     });
 
+    socket.on('respond to join channel', async (data, callback) => {
+      // console.log(data);
+    });
+
+    /**
+     * Managed to notification to user
+     */
+    socket.on('request join channel', async (channelId, callback) => {
+      try {
+        const channel = await Channel.findById(channelId);
+        if (!channel) {
+          return callback ({ status: 'error', error: 'Channel not found' });
+        }
+
+        const existingUserChannel = await UserChannel.findOne({
+          userId: socket.user._id,
+          channelId: channelId
+        });
+
+        if (existingUserChannel) {
+          return callback({
+            status: 'error',
+            error: 'Already requested or member of this channel'
+          });
+        }
+
+        const userChannel = new UserChannel({
+          userId: socket.user._id,
+          channelId: channelId,
+          status: 'pending',
+          role: 'member'
+        });
+
+        await userChannel.save();
+
+        const channelAdmin = await UserChannel.findOne({
+          channelId: channelId,
+          role: 'admin',
+        });
+
+        if (!channelAdmin) {
+          return callback({ status: 'error', error: 'Admin of this channel not found' });
+        }
+
+        const connectedClients = Array.from(io.sockets.sockets.keys());
+        console.log('Connected clients: ', connectedClients);
+
+        const notificationData = {
+          channelId: channelId,
+          channelName: channel.name,
+          requestingUser: {
+            id: socket.user._id,
+            username: socket.user.username
+          },
+          requestId: userChannel._id
+        }
+
+        const adminRoom = channelAdmin.userId.toString();
+        const roomClients = io.sockets.adapter.rooms.get(adminRoom);
+        if (!roomClients) {
+          console.log(`Admin ${adminRoom} is not connected`);
+          callback({ status: 'error', error: 'Admin is not connected'});
+        }
+        io.to(adminRoom).emit('join request notification', notificationData);
+
+        // Send notification to admin of this channel
+        // if (channelAdmin) {
+        //   io.to(channelAdmin.userId.toString()).emit('join request notification', {
+        //     channelId: channelId,
+        //     channelName: channel.name,
+        //     requestingUser: {
+        //       id: socket.user._id,
+        //       username: socket.user.username
+        //     },
+        //     requestId: userChannel._id
+        //   });
+        // }
+        callback({ status: 'ok' });
+      } catch (e) {
+        console.error(e);
+        callback({ status: 'error', error: 'Failed to process join channel' });
+      }
+    });
+
     socket.on('search channels', async (term, callback) => {
       try {
-        const channels = await Channel.aggregate([
-          ...(term && term.length > 0 ? [
-            // Match the search `term`
+        let channels = [];
+        if (term.length <= 0) {
+          const index = new IndexController();
+          channels = await index.getChannels(socket.user._id);
+        }
+        else {
+          channels = await Channel.aggregate([
+            ...(term && term.length > 0 ? [
+              // Match the search `term`
+              {
+                $match: {
+                  name: { $regex: term, $options: 'i' },
+                  $or: [
+                    { isPrivate: false },
+                    { 
+                      isPrivate: true,
+                      $or: [
+                        { creator: socket.user._id },
+                        { members: socket.user._id },
+                      ]
+                    }
+                  ]
+                }
+              },
+            ] : []),
+            // Look for latest message
             {
-              $match: {
-                name: { $regex: term, $options: 'i' }
+              $lookup: {
+                from: 'messages',
+                localField: '_id',
+                foreignField: 'channel',
+                pipeline: [
+                  { $sort: { sentAt: -1 } },
+                  { $limit: 1 },
+                  {
+                    $lookup: { from: 'users', localField: 'sender', foreignField: '_id', as: 'sender' }
+                  },
+                  { $unwind: '$sender' }
+                ],
+                as: 'latestMessage'
               }
             },
-          ] : []),
-          // Look for latest message
-          {
-            $lookup: {
-              from: 'messages',
-              localField: '_id',
-              foreignField: 'channel',
-              pipeline: [
-                { $sort: { sentAt: -1 } },
-                { $limit: 1 },
-                {
-                  $lookup: { from: 'users', localField: 'sender', foreignField: '_id', as: 'sender' }
-                },
-                { $unwind: '$sender' }
-              ],
-              as: 'latestMessage'
-            }
-          },
-          {
-            $lookup: {
-              from: 'messages',
-              localField: '_id',
-              foreignField: 'channel',
-              pipeline: [
-                { 
-                  $match: { 
-                    sentAt: { 
-                      $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+            {
+              $lookup: {
+                from: 'messages',
+                localField: '_id',
+                foreignField: 'channel',
+                pipeline: [
+                  { 
+                    $match: { 
+                      sentAt: { 
+                        $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+                      } 
                     } 
-                  } 
-                },
-                { $count: 'count' }
-              ],
-              as: 'messageCount'
-            }
-          },
-          {
-            $addFields: {
-              latestMessage: { $arrayElemAt: ['$latestMessage', 0] },
-              messageCount: { 
-                $ifNull: [
-                  { $arrayElemAt: ['$messageCount.count', 0] },
-                  0
-                ]
+                  },
+                  { $count: 'count' }
+                ],
+                as: 'messageCount'
+              }
+            },
+            {
+              $addFields: {
+                latestMessage: { $arrayElemAt: ['$latestMessage', 0] },
+                messageCount: { 
+                  $ifNull: [
+                    { $arrayElemAt: ['$messageCount.count', 0] },
+                    0
+                  ]
+                }
               }
             }
-          }
-        ]);
+          ]);
+        }
 
         if (typeof callback === 'function') {
           callback( { status: 'ok', message: 'Search response from server' });
@@ -353,10 +489,118 @@ export function initializeSocket(server) {
       }
     });
 
+    socket.on('invite users', async ({ channelId, userIds }, callback) => {
+      try {
+        const channel = await Channel.findById(channelId);
+        if (!channel) {
+          if (typeof callback === 'function') {
+            return callback({ status: 'error', message: 'Channel not found' });
+          }
+        }
+
+        // const invites = userIds.map(userId => ({ 
+        //   userId,
+        //   channelId,
+        //   role: 'member',
+        //   status: 'pending',
+        //   joinedAt: new Date(),
+        // }));
+
+        // await UserChannel.insertMany(invites);
+
+        userIds.forEach(userId => {
+          io.to(userId.toString()).emit('channel invite', {
+            channelId: channel._id,
+            channelName: channel.name,
+            invitedBy: socket.user.username,
+          });
+        });
+
+        socket.emit('invite results', {
+          status: 'ok',
+          message: 'Invitations sent successfully',
+        });
+
+      } catch (e) {
+        console.log(e);
+      }
+    });
+
+    socket.on('accept channel invite', async ({ channelId }, callback) => {
+      try {
+        const channel = await Channel.findById(channelId);
+        if (!channel) {
+          if (typeof callback === 'function') {
+            return callback({ status: 'error', message: 'Channel not found' });
+          }
+        }
+
+        const existingMembership = await UserChannel.findOne({
+          userId: socket.user._id,
+          channelId: channelId
+        });
+
+        if (existingMembership) {
+          return callback({
+            status: 'error',
+            error: 'You are already a member of this channel'
+          });
+        }
+
+        const newUserChannel = new UserChannel({
+          userId: socket.user._id,
+          channelId: channel._id,
+          role: 'member',
+          status: 'accepted',
+          joinedAt: new Date(),
+          lastRead: new Date(),
+        });
+
+        await newUserChannel.save();
+
+        return callback({
+          status: 'ok',
+          message: 'You have accepted the invitation.',
+          channel: channel
+        });
+
+      } catch (e) {
+        console.log(e);
+      }
+    });
+
+    socket.on('search users', async ({ query, channelId }, callback) => {
+      try {
+        const channel = await Channel.findById(channelId);
+        if (!channel) {
+          callback({ status: 'error', error: 'Channel not found' });
+        }
+        
+        const existingMembers = await UserChannel.find({
+          channelId: channelId
+        }).distinct('userId');
+
+
+        const users = await User.find({
+          username: { $regex: query, $options: 'i' },
+          _id: {
+            // $nin: existingMembers,
+            $ne: socket.user._id // exclude current user
+          }
+        }).limit(10);
+
+        io.to(channelId.toString()).emit('search user results', users);
+
+      } catch(e) {
+        console.log(e);
+        // callback({ status: 'error', error: 'Something went wrong, please log out and login back' });
+      }
+    });
+
     socket.on('create channel', async (data, callback) => {
       try {
-
         const channelName = data.name.trim();
+
         if (!data || !data.name) {
           return callback({
             status: 'error',
@@ -372,7 +616,7 @@ export function initializeSocket(server) {
           });
         }
 
-        const existingChannel = await Channel.findOne({ channelName });
+        const existingChannel = await Channel.findOne({ name: channelName });
         if (existingChannel) {
           return callback({
             status: 'error',
@@ -383,7 +627,10 @@ export function initializeSocket(server) {
         const newChannel = new Channel({
           name: channelName,
           description: data.description,
-          participants: [],
+          creator: socket.user._id,
+          members: [socket.user._id],
+          isPrivate: Boolean(data.isPrivate) || false,
+          lastActivity: new Date(),
           createdAt: new Date(),
         });
 
@@ -394,15 +641,12 @@ export function initializeSocket(server) {
           userId: socket.user._id,
           channelId: newChannel._id,
           role: 'admin',
+          status: 'accepted',
           joinedAt: new Date(),
+          lastRead: new Date()
         });
 
         await userChannel.save();
-
-        await Channel.findByIdAndUpdate(
-          newChannel._id,
-          { $push: { participants: userChannel._id } }
-        );
 
         io.emit('channel created', {
           _id: newChannel._id,
@@ -412,17 +656,32 @@ export function initializeSocket(server) {
         });
 
         callback({
-            status: 'ok',
-            channel: {
-                _id: newChannel._id,
-                name: newChannel.name,
-                description: newChannel.description
+          status: 'ok',
+          channel: {
+            _id: newChannel._id,
+            name: newChannel.name,
+            description: newChannel.description,
+            isPrivate: newChannel.isPrivate,
+            creator: {
+              _id: socket.user._id,
+              username: socket.user.username,
             },
-            message: 'A new channel created successfully'
+            messageCount: 0,
+            latestMessage: null,
+            userRole: 'admin',
+            userStatus: 'accepted',
+            createdAt: newChannel.createdAt,
+            lastActivity: newChannel.lastActivity,
+          },
+          message: 'A new channel created successfully'
         });
 
       } catch (e) {
-        console.error(e);
+        console.error(e.message);
+        callback({
+          status: 'error',
+          error: 'Failed to create channel. Please try again.'
+        }); 
       }
     });
 
