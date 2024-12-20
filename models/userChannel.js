@@ -1,18 +1,29 @@
 import mongoose, { Schema  } from "mongoose";
 
 const userChannelSchema = new Schema({
-  userId: { type: Schema.Types.ObjectId, ref: 'User', required: false },
-  channelId: { type: Schema.Types.ObjectId, ref: 'Channel', required: false },
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  channelId: { type: Schema.Types.ObjectId, ref: 'Channel', required: true },
   role: {
     type: String,
     enum: ['admin', 'member'], // Only allow these values
     default: 'member'
   },
-  joinedAt: { type: Date, default: Date.now }
+  status: {
+    type: String,
+    enum: ['pending', 'accepted', 'rejected'],
+    default: 'pending'
+  },
+  joinedAt: { type: Date, default: Date.now },
+  lastRead: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-// prevent duplicate user-channel relationship
-userChannelSchema.index({ user: 1, channel: 1 }, { unique: true });
+userChannelSchema.index({ 
+  unique: true,
+  name: 'userId_channelId_unique'
+});
 
 export const UserChannel = mongoose.model('UserChannel', userChannelSchema);
 
