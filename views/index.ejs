@@ -79,38 +79,6 @@
                     <% }) %>
                     <% } %>
                 </div>
-
-                <div class="channel-list">
-                    <% if (locals.users && users.length > 0) { %>
-                        <% users.forEach((user) => { %>
-                            <div style="text-decoration: none; color: #dcddde" class="channel-link"
-                                 data-user-id="<%= user._id %>"
-                                 data-username="<%= user.username %>"
-                            >
-                                <div class="channel" user-data-id="<%= user._id %>">
-                                    <div class="channel-icon">
-                                        <%= user.username.charAt(0).toUpperCase() %>
-                                    </div>
-                                    <div class="channel-info">
-                                        <h4> <%= user.username %> </h4>
-                                        <p><%= user.lastMessage ? user.lastMessage.content : 'No messages yet' %></p>
-                                    </div>
-                                    <div class="channel-meta">
-                                        <% if (user.lastMessage) { %>
-                                            <span class="time"><%= new Date(user.lastMessage.sentAt).toLocaleTimeString([], {
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                }) %></span>
-                                        <% } %>
-                                        <% if (user.conversation && user.conversation.unreadCount) { %>
-                                            <span class="unread"><%= user.conversation.unreadCount %></span>
-                                        <% } %>
-                                    </div>
-                                </div>
-                            </div>
-                        <% }) %>
-                    <% } %>
-                </div>
             </div>
         </div>
 
@@ -138,6 +106,33 @@
             </div>
         </div>
 
+        <!--  POP UP WINDOW when user click on add button to invite a user to channel -->
+        <div id="inviteUserModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Invite Users to #<span id="channelNameInvite"></span></h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="search-container">
+                        <input type="text" 
+                               id="userSearchInput" 
+                               placeholder="Search users..."
+                               autocomplete="off">
+                        <div id="searchResults" class="search-results"></div>
+                    </div>
+                    <div class="selected-users">
+                        <h4 style="color: black">Selected Users</h4>
+                        <div id="selectedUsersList"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="sendInvites" class="btn btn-primary">Send Invites</button>
+                    <button class="btn btn-secondary close-modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <!--  POP UP WINDOW when user click on add button to add a new channel -->
         <div id="createChannelModal" class="modal">
             <div class="modal-content">
@@ -156,6 +151,15 @@
                                required>
                         <small class="form-hint">Only lowercase letters, numbers, hyphens, and underscores allowed</small>
                     </div>
+                    <div class="form-group">
+                        <label for="isChannelPrivate">Is private?</label>
+                        <input type="checkbox" 
+                               id="isChannelPrivate"
+                               name="isChannelPrivate" 
+                               >
+                        <small class="form-hint">Click to mark this channel as private, other people can't search your channel</small>
+                    </div>
+
                     <div class="form-group">
                         <label for="channelDescription">Description (Optional)</label>
                         <textarea id="channelDescription" 
@@ -208,8 +212,10 @@
     <input type="hidden" value="<%= user_id %>" id="userid-hidden">
 </div>
 </body>
+
 <script src="/socket.io/socket.io.js"></script>
 <script src="/javascript/main.js"></script>
 <script src="/javascript/overall.js"></script>
+<script src="/javascript/search-channels.js"></script>
 
 </html>
