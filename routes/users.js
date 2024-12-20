@@ -1,5 +1,6 @@
 import {Router} from 'express';
 import UsersController from '../controller/users_controller.js';
+import UserApi from '../controller/user_api.js';
 import { loginValidation } from '../middleware/login_validation.js';
 import { registerValidation } from '../middleware/register_validation.js';
 
@@ -19,6 +20,8 @@ router.post('/login', loginValidation, UsersController.loginRequest);
 
 router.get('/register', UsersController.register);
 router.post('/register', registerValidation, UsersController.registerRequest);
+
+router.get('/api/v1/remove-message/:id', loginValidation, UserApi.removeMessage);
 
 router.get('/logout', verifyLogin, UsersController.logout);
 
