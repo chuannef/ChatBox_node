@@ -1,16 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // const msgInput = document.getElementById('msgInput');
-    // const msgForm = document.getElementById('msgForm');
-    // const messagesContainer = document.querySelector('.messages');
-    // const contextMenu = document.getElementById('contextMenu');
-    // const searchBoxChannel = document.getElementById('search-channel');
-    // let searchTimeout;
 
     const currentUsername = document.getElementById("username-hidden").value;
     const currentUserId = document.getElementById("userid-hidden").value;
 
-    // const USER_ID = '<%= user_id %>';
-
+    /**
+     * ===========================  Socket Authentication ===========================
+     */
     function getWSToken() {
         const cookies = document.cookie.split(';')
             .map(cookie => cookie.trim())
@@ -40,12 +35,188 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /**
+     * ============================================================================
+     */
+
+
+    /**
      * Socket connecting
      */
     socket.on('connect', () => {
         console.log('Connected');
         joinCurrentChannel();
     });
+
+    class UserInviteSystem {
+        constructor() {
+            this.modal = document.getElementById('inviteUserModal');
+            this.searchInput = document.getElementById('userSearchInput');
+            this.searchResults = document.getElementById('searchResults');
+            this.selectedUsersList = document.getElementById('selectedUsersList');
+            this.channelNameSpan = document.getElementById('channelNameInvite');
+            this.sendInvitesBtn = document.getElementById('sendInvites');
+
+            this.currentChannel = null;
+            this.selectedUsers = new Map(); // Using Map to store selected users
+            this.searchTimeout = null;
+            this.initialize();
+        } 
+
+        displaySearchResults(users) {
+            if (!users.length) {
+                this.searchResults.innerHTML = '<div class="p-3">No users found</div>';
+                this.searchResults.style.display = 'block';
+                return;
+            }
+
+            this.searchResults.innerHTML = users
+                .map(user => `
+                <div class="search-result-item" data-user-id="${user._id}">
+                    <div class="user-avatar">
+                        ${user.username.charAt(0).toUpperCase()}
+                    </div>
+                    <span>${user.username}</span>
+                </div>
+            `)
+                .join('');
+
+            this.searchResults.style.display = 'block';
+
+            // Add click handlers for results
+            this.searchResults.querySelectorAll('.search-result-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const userId = item.dataset.userId;
+                    const username = item.querySelector('span').textContent;
+                    this.addSelectedUser(userId, username);
+                });
+            });
+        }
+
+        addSelectedUser(userId, username) {
+            if (!this.selectedUsers.has(userId)) {
+                this.selectedUsers.set(userId, username);
+                this.updateSelectedUsersList();
+            }
+            this.searchInput.value = '';
+            this.searchResults.style.display = 'none';
+        }
+
+        removeSelectedUser(userId) {
+            this.selectedUsers.delete(userId);
+            this.updateSelectedUsersList();
+        }
+
+        updateSelectedUsersList() {
+            this.selectedUsersList.innerHTML = Array.from(this.selectedUsers.entries())
+                .map(([id, username]) => `
+                <div class="selected-user-tag">
+                    <span style="color: #dcddde">${username}</span>
+                    <span class="remove-user" data-user-id="${id}">&times;</span>
+                </div>
+            `)
+                .join('');
+
+            // Add remove handlers
+            this.selectedUsersList.querySelectorAll('.remove-user').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    this.removeSelectedUser(e.target.dataset.userId);
+                });
+            });
+        }
+
+        initializeSocketListeners() {
+            socket.on('search user results', (users) => {
+                console.log(users);
+                this.displaySearchResults(users);
+            });
+
+            socket.on('invite results', (result) => {
+                if (result.status === 'ok') {
+                    showSuccessToast('Invitations sent successfully');
+                    this.hideModal();
+                } else {
+                    showErrorToast(result.error);
+                }
+            });
+
+            socket.on('channel invite', (invite) => {
+                showNotificationToast(invite);
+            });
+        }
+
+        sendInvites() {
+            if (this.selectedUsers.size === 0) {
+                showErrorToast('Please select at least one user to invite');
+                return;
+            }
+
+            socket.emit('invite users', {
+                channelId: this.currentChannel._id,
+                userIds: Array.from(this.selectedUsers.keys())
+            }, (response) => {
+                if (response.status !== 'ok') {
+                    showErrorToast(response?.message);
+                }
+            });
+        }
+
+        hideModal() {
+            this.modal.style.display = 'none';
+            this.searchInput.value = '';
+            this.searchResults.style.display = 'none';
+            this.selectedUsers.clear();
+            this.updateSelectedUsersList();
+        }
+
+        handleSearch() {
+            clearTimeout(this.searchTimeout);
+
+            const query = this.searchInput.value.trim();
+            console.log(query);
+
+            if (query.length < 2) {
+                this.searchResults.style.display = 'none';
+            }
+
+            // Delays 300ms
+            this.searchTimeout = setTimeout(() => {
+                // Emit search event to server
+                socket.emit('search users', {
+                    query,
+                    channelId: this.currentChannel._id
+                }, (response) => {
+                    if (response.status !== 'ok') {
+                        showErrorToast(response.error);
+                    }
+                });
+            }, 300);
+        }
+
+        showModal(channel) {
+            this.currentChannel = channel;
+            this.channelNameSpan.textContent = channel.name;
+            this.modal.style.display = 'block';
+            this.searchInput.focus();
+        }
+
+        initialize() {
+            // Setup event listeners
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', () => this.hideModal());
+            });
+
+            this.searchInput.addEventListener('input', () => this.handleSearch());
+            this.sendInvitesBtn.addEventListener('click', () => this.sendInvites());
+
+            // Close modal when clicking outside
+            this.modal.addEventListener('click', (e) => {
+                if (e.target === this.modal) this.hideModal();
+            });
+
+            this.initializeSocketListeners();
+        }
+    }
+    const userInviteSystem = new UserInviteSystem();
 
     let currentChannel = null;
 
@@ -85,15 +256,13 @@ document.addEventListener('DOMContentLoaded', () => {
         channelsContainer.innerHTML = '';
 
         channels.forEach(channel => {
-            // const channelElement = createChannelElement(channel);
-            // channelsContainer.appendChild(channelElement);
             addChannelToList(channel);
         });
 
         if (channels.length <= 0 || channels.empty) {
             showErrorToast('Sorry, channel not found');
         }
-        attachChannelClickListeners();
+        // attachChannelClickListeners();
     });
 
     // Reattach eventListener for channel
@@ -186,12 +355,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     createChannelForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
         const submitButton = createChannelForm.querySelector('button[type="submit"]');
+        const isChannelPrivate = document.getElementById('isChannelPrivate').checked;
+
         submitButton.disabled = true;
+
         try {
             const formData = {
                 name: channelNameInput.value.trim(),
-                description: document.getElementById('channelDescription').value.trim()
+                description: document.getElementById('channelDescription').value.trim(),
+                isPrivate: isChannelPrivate,
             };
             socket.emit('create channel', formData, (response) => {
                 if (response.status === 'ok') {
@@ -208,6 +382,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+
+    function requestJoinChannel(channelId) {
+        socket.emit('request join channel', channelId, (response) => {
+            if (response.status === 'ok') {
+                const joinButton = document.querySelector(
+                    `.channel-link[data-channel-id="${channelId}"] .join-button`
+                );
+                if (joinButton) {
+                    joinButton.outerHTML = '<span class="status-badge pending">Request Pending</span>';
+                }
+                showSuccessToast('Join request sent successfully');
+            } else {
+                showErrorToast(response.error || 'Failed to send join request');
+            }
+        })
+    }
+
+    socket.on('join request notification', (data) => {
+        console.log(data);
+    });
+
     /**
      * Add a new channel to the left sidebar
      * @param {Object} channel - contains _id, name, description...
@@ -219,6 +414,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const privacyIcon = channel.isPrivate ? 
+            '<i class="fas fa-lock" title="Private Channel"></i>' : 
+            '<i class="fas fa-hashtag"></i>';
+
+
         // Create channel link container
         const channelLink = document.createElement('div');
         channelLink.className = 'channel-link';
@@ -226,36 +426,57 @@ document.addEventListener('DOMContentLoaded', () => {
         channelLink.style.color = '#dcddde';
         channelLink.setAttribute('data-channel-id', channel._id);
 
+        // Check if user is already a member or has pending request
+        const membershipStatus = channel.userStatus || 'none';
+        console.log(channel);
+
+        let joinButtonHtml = '';
+        switch(membershipStatus) {
+            case 'accepted':
+                joinButtonHtml = '<span class="status-badge member">Member</span>';
+                break;
+            case 'pending':
+                joinButtonHtml = '<span class="status-badge pending">Request Pending</span>';
+                break;
+            case 'none':
+                joinButtonHtml = '<button class="join-button">Join Channel</button>';
+                break;
+        }
+
         // Create channel element
         const channelElement = document.createElement('div');
         channelElement.className = 'channel';
         channelElement.setAttribute('channel-data-id', channel._id);
 
-        // Create channel content
+
         channelElement.innerHTML = `
-            <div class="channel-icon">#</div>
+        <div class="channel" channel-data-id="${channel._id}">
+            <div class="channel-icon">
+              ${privacyIcon}
+            </div>
             <div class="channel-info">
-                <h4>${channel.name}</h4>
-                <p>Latest message here...</p>
+                <div class="channel-header">
+                    <h4>${channel.name}</h4>
+                    ${joinButtonHtml}
+                </div>
+                <p>${channel.latestMessage ? channel.latestMessage.content : 'No messages yet'}</p>
             </div>
             <div class="channel-meta">
-                <span class="time">Just now</span>
-                <span class="unread">0</span>
+                <span class="time">
+                    ${channel.latestMessage ? new Date(channel.latestMessage.sentAt).toLocaleTimeString() : ''}
+                </span>
+                <span class="unread">${channel.messageCount}</span>
             </div>
-        `;
+        </div>
+    `;
 
-        channelLink.addEventListener('click', () => {
-            // Remove active class from all channels
-            document.querySelectorAll('.channel').forEach(ch => {
-                ch.classList.remove('active');
+        const joinBtn = channelElement.querySelector('.join-button');
+        if (joinBtn) {
+            joinBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                requestJoinChannel(channel._id);
             });
-
-            // Add active class to clicked channel
-            channelElement.classList.add('active');
-
-            joinChannel(channel._id);
-        });
-
+        }
         // Assemble and insert the new channel
         channelLink.appendChild(channelElement);
         channelList.insertAdjacentElement('afterbegin', channelLink);
@@ -278,10 +499,6 @@ document.addEventListener('DOMContentLoaded', () => {
             joinChannel(currentChannelId);
         }
     }
-
-    // Prevent socket io auto submit
-    // msgForm?.removeEventListener('submit', handleSubmit);
-
 
     /**
      * Send message socket.emit('chat', messageData, (response) => {}
@@ -306,9 +523,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             });
-            // await socket.emit('chat', { content, channelId }, (response) => {
-            //     console.log(response);
-            // });
             msgInput.value = '';
         } catch (e) {
             console.error('Failed to send message: ');
@@ -324,8 +538,6 @@ document.addEventListener('DOMContentLoaded', () => {
             msgInput.value = '';
         }
     }
-
-    // msgForm.addEventListener('submit', handleSubmit);
 
     /**
      * Join channel socket.emit('join channel')
@@ -386,7 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Receive result from channel
      */
     socket.on('channel selected', (data) => {
-        console.log(data);
+        // console.log(data);
         console.log('channel selected');
         const {messages, channel, memberCount} = data;
         currentChannel = channel;
@@ -421,6 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // this one from server
     // io.to(channelId).emit('new message', messageData);
     socket.on('new message', (data) => {
+        // console.log(data);
         appendNewMessage(data);
     });
 
@@ -523,11 +736,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Add hover effect for own messages
-        // if (msg.sender._id === currentUserId) {
-        //     messageDiv.addEventListener('contextmenu', handleMessageContextMenu);
-        // }
-
         return messageDiv;
     }
 
@@ -549,6 +757,65 @@ document.addEventListener('DOMContentLoaded', () => {
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    }
+             
+    function declineInvite(channelId) {
+
+    }
+
+    function acceptInvite(channelId) {
+        socket.emit('accept channel invite', { channelId }, (response) => {
+            console.log(response);
+            if (response.status === 'ok') {
+                addChannelToList(response.channel);
+                showSuccessToast(response?.message)
+            } else {
+                showErrorToast(response?.error || 'Something went wrong');
+            }
+        });
+    }
+
+    function showNotificationToast(invite) {
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        console.log(invite);
+
+        toast.innerHTML = `
+        <div class="toast-content">
+            <div class="toast-header">
+                <i class="fas fa-envelope"></i>
+                <span>Channel Invitation</span>
+            </div>
+            <div class="toast-body">
+                <p><strong>${invite.invitedBy}</strong> invited you to join <strong>#${invite.channelName}</strong></p>
+                <div class="toast-actions">
+                    <button class="accept-invite-btn">Accept</button>
+                    <button class="decline-invite-btn">Decline</button>
+                </div>
+            </div>
+        </div>
+        `;
+
+        const acceptBtn = toast.querySelector('.accept-invite-btn');
+        const declineBtn = toast.querySelector('.decline-invite-btn');
+
+        acceptBtn.addEventListener('click', () => {
+            acceptInvite(invite.channelId);
+            toast.remove();
+        });
+
+        declineBtn.addEventListener('click', () => {
+            declineInvite(invite.channelId);
+            toast.remove();
+        });
+        
+        document.body.appendChild(toast);
+        // Auto remove after 10 secs
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 20000);
     }
 
     function showSuccessToast(message) {
@@ -593,8 +860,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (response?.status === 'ok') {
                                 resolve(response);
                             } else {
-                                showErrorToast("There something went wrong");
-                                reject(new Error(response?.message));
+                                showErrorToast(response?.error);
+                                reject(new Error(response?.error));
                             }
                         });
                     });
@@ -650,10 +917,6 @@ document.addEventListener('DOMContentLoaded', () => {
             contextMenu.style.display = 'none';
         });
     }
-
-    // socket.on('message deleted', (data) => {
-    //     console.log(data);
-    // });
 
     function createMessagesContainer(messages) {
         const container = document.createElement('div');
@@ -776,10 +1039,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p>${memberCount} members</p>
             </div>
             <div class="chat-header-actions">
-                <button><i class="fas fa-user-plus"></i></button>
+                <button id="inviteButton"><i class="fas fa-user-plus"></i></button>
                 <button><i class="fas fa-info-circle"></i></button>
             </div>
             `;
+        header.querySelector('#inviteButton').addEventListener('click', () => {
+            userInviteSystem.showModal(channel);
+        })
         return header;
     }
 
@@ -810,13 +1076,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function isToday(date) {
-        const today = new Date();
-        return date.getDate() === today.getDate()
-            && date.getMonth() === today.getMonth()
-            && date.getFullYear() === today.getFullYear();
-    }
-
     function getCurrentChannel() {
         const activeChannel = document.querySelector('.channel.active');
         return activeChannel?.getAttribute('channel-data-id') || null;
@@ -828,27 +1087,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    socket.on('conversation history', ({conversation, messages}) => {
-        console.log(conversation);
-        console.log(messages);
-    })
+    // socket.on('conversation history', ({conversation, messages}) => {
+    //     console.log(conversation);
+    //     console.log(messages);
+    // })
 
-    async function startOrOpenConversation(receiverId) {
-        console.log(receiverId);
-        socket.emit('start conversation', receiverId, function (response) {
-            console.log(response);
-        });
-    }
+    // async function startOrOpenConversation(receiverId) {
+    //     console.log(receiverId);
+    //     socket.emit('start conversation', receiverId, function (response) {
+    //         console.log(response);
+    //     });
+    // }
 
-    document.querySelectorAll('.channel-link[data-user-id]').forEach(link => {
-        link.addEventListener('click', function (e) {
-            e.preventDefault();
-            const userId = this.dataset.userId;
-            if (userId) {
-                startOrOpenConversation(userId);
-            }
-        });
-    });
+    // document.querySelectorAll('.channel-link[data-user-id]').forEach(link => {
+    //     link.addEventListener('click', function (e) {
+    //         e.preventDefault();
+    //         const userId = this.dataset.userId;
+    //         if (userId) {
+    //             startOrOpenConversation(userId);
+    //         }
+    //     });
+    // });
     // socket.on('select channel', (channelId));
 });
 
