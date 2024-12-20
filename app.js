@@ -39,6 +39,8 @@ app.use(flash());
 
 app.set('view engine', 'ejs');
 
+// app.use('/socket.io', express.static('node_modules/socket.io/client-dist'));
+
 app.use(logger('dev'));
 app.use(json());
 app.use(urlencoded({ extended: false }));

@@ -7,27 +7,33 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         var socket = io.connect();
-
+    
         document.addEventListener('DOMContentLoaded', function () {
             var messageInput = document.getElementById('messageInput');
             var sendButton = document.getElementById('sendButton');
-
+            var tingSound = new Audio('/images/ting.mp3'); 
+    
+           
             sendButton.addEventListener('click', function() {
                 var message = messageInput.value;
                 if (message.trim() !== '') {
                     // socket.emit('sendMessage', { friendId: <%= friend.id %>, content: message });
                     messageInput.value = '';
+                    tingSound.play(); // Play sound when sending a message
                 }
             });
-
             socket.on('newMessage', function (message) {
                 var messagesDiv = document.getElementById('messages');
                 var messageElement = document.createElement('div');
                 messageElement.textContent = message.content;
                 messagesDiv.appendChild(messageElement);
+    
+                // Play sound when a new message is received
+                tingSound.play();
             });
         });
     </script>
+    
 </head>
 <body>
     <h2>Chat with <%= friend.username %></h2>

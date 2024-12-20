@@ -25,4 +25,11 @@ router.get('/api/v1/remove-message/:id', loginValidation, UserApi.removeMessage)
 
 router.get('/logout', verifyLogin, UsersController.logout);
 
+router.get('/profile', verifyLogin, (req, res) => {
+  res.render('profile', { user: req.user }); 
+});
+
+router.get('/settings', verifyLogin, (req, res) => {
+  res.render('setting', { user: req.user }); 
+});
 export default router;
