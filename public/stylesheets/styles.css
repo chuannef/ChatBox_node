@@ -1125,3 +1125,160 @@ body {
     font-size: 14px;
     margin-top: 4px;
 }
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-badge.member {
+    background-color: #43b581;
+    color: white;
+}
+
+.status-badge.pending {
+    background-color: #faa61a;
+    color: white;
+}
+
+.join-button {
+    padding: 4px 12px;
+    border-radius: 4px;
+    background-color: #7289da;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.join-button:hover {
+    background-color: #677bc4;
+}
+
+.channel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.channel.private .channel-icon {
+  color: #ffd700; /* Gold color for private channels */
+}
+
+.channel.private .fa-lock {
+  font-size: 0.8em;
+  margin-right: 2px;
+}
+
+/* Tooltip for private channel icon */
+.channel.private .channel-icon i {
+  cursor: help;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    width: 50%;
+    max-width: 500px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.close-modal {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.search-container {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+#userSearchInput {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+}
+
+.search-result-item {
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: var(--background-dark);
+    color: var(--text-color);
+}
+
+.search-result-item:hover {
+    background-color: var(--hover-color);
+}
+
+.selected-users {
+    margin-top: 20px;
+}
+
+.selected-user-tag {
+    display: inline-flex;
+    align-items: center;
+    background: var(--background-dark);
+    padding: 5px 10px;
+    border-radius: 15px;
+    margin: 5px;
+    gap: 5px;
+}
+
+.remove-user {
+    cursor: pointer;
+    color: #dc3545;
+}
+
+.user-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #007bff;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
