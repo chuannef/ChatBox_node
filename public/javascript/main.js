@@ -6,12 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // const searchBoxChannel = document.getElementById('search-channel');
     // let searchTimeout;
 
-    let currentChannel = null;
-
-    // messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-
-    // const CURRENT_USER = '<%= username %>';
     const currentUsername = document.getElementById("username-hidden").value;
     const currentUserId = document.getElementById("userid-hidden").value;
 
@@ -39,8 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_RECONNECT_ATTEMPTS = 3;
 
     const socket = io({
-        ackTimeout: 10000,
-        retries: MAX_RECONNECT_ATTEMPTS,
+        reconnection: true,
         transports: ['websocket'],
         upgrade: false,
         auth: {token}
@@ -54,67 +47,228 @@ document.addEventListener('DOMContentLoaded', () => {
         joinCurrentChannel();
     });
 
+    let currentChannel = null;
+
+    const modal = document.getElementById('createChannelModal');
+    const addChannelBtn = document.querySelector('.add-channel-btn');
+    const closeModal = document.querySelector('.close-modal');
+    const cancelBtn = document.querySelector('.cancel-btn');
+    const createChannelForm = document.getElementById('createChannelForm');
+    const channelNameInput = document.getElementById('channelName');
+
+    /**
+     * ==================> BEGIN -SEARCH FOR CHANNELS- <==================
+     */
+    const searchInput = document.getElementById('search-channel');
+    let searchTimeout = null;
+
+    searchInput.addEventListener('input', (e) => {
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+
+        searchTimeout = setTimeout(() => {
+            const term = e.target.value.trim();
+            searchChannel(term);
+        }, 300);
+    });
+
+    function searchChannel(term) {
+        // Send to the server
+        socket.emit('search channels', term);
+    }
+
+    // SERVER: -> socket.emit('search channels results', channels);
+    // Listen from server
+    socket.on('search channels results', (channels) => {
+        const channelsContainer = document.querySelector('.channel-list');
+        channelsContainer.innerHTML = '';
+
+        channels.forEach(channel => {
+            // const channelElement = createChannelElement(channel);
+            // channelsContainer.appendChild(channelElement);
+            addChannelToList(channel);
+        });
+
+        if (channels.length <= 0 || channels.empty) {
+            showErrorToast('Sorry, channel not found');
+        }
+        attachChannelClickListeners();
+    });
+
+    // Reattach eventListener for channel
+    function attachChannelClickListeners() {
+        document.querySelectorAll('.channel-link').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                const channelId = this.dataset.channelId;
+
+                // remove active class from all channel
+                document.querySelectorAll('.channel').forEach(ch =>
+                    ch.classList.remove('active')
+                );
+
+                this.querySelector('.channel').classList.add('active');
+
+                socket.emit('select channel', channelId, function (response) {
+                    console.log(response);
+                });
+            });
+        });
+    }
+
+    function createChannelElement(channel) {
+        const channelLink = document.createElement('div');
+        channelLink.className = 'channel-link';
+        channelLink.style.textDecoration = 'none';
+        channelLink.style.color = '#dcddde';
+        channelLink.setAttribute('data-channel-id', channel._id);
+
+        channelLink.innerHTML = `
+        <div class="channel" channel-data-id="${channel._id}">
+            <div class="channel-icon">#</div>
+            <div class="channel-info">
+                <h4>${channel.name}</h4>
+                <p>${channel.latestMessage ? channel.latestMessage.content : 'No messages yet'}</p>
+            </div>
+            <div class="channel-meta">
+                <span class="time">
+                    ${channel.latestMessage ? new Date(channel.latestMessage.sentAt).toLocaleTimeString() : ''}
+                </span>
+                <span class="unread">${channel.messageCount}</span>
+            </div>
+        </div>
+    `;
+
+        // Attach click handler directly to the new element
+        channelLink.addEventListener('click', () => {
+            joinChannel(channel._id);
+        });
+
+        return channelLink;
+    }
+
+    /**
+     * ==================> END -SEARCH FOR CHANNELS- <==================
+     */
+
+    addChannelBtn.addEventListener('click', (e) => {
+        modal.style.display = 'block';
+        channelNameInput.focus();
+    });
+
+    function hideModal() {
+        modal.style.display = 'none';
+        createChannelForm.reset();
+    }
+
+    closeModal.addEventListener('click', hideModal);
+    cancelBtn.addEventListener('click', hideModal);
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            hideModal();
+        }
+    });
+
+    function showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = message;
+        
+        const existingError = createChannelForm.querySelector('.error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        createChannelForm.insertBefore(errorDiv, createChannelForm.firstChild);
+    }
+
+    createChannelForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitButton = createChannelForm.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        try {
+            const formData = {
+                name: channelNameInput.value.trim(),
+                description: document.getElementById('channelDescription').value.trim()
+            };
+            socket.emit('create channel', formData, (response) => {
+                if (response.status === 'ok') {
+                    hideModal();
+                    showSuccessToast(response.message);
+                } else {
+                    hideModal();
+                    showErrorToast(response.error);
+                }
+                submitButton.disabled = false;
+            })
+        } catch (e) {
+            console.log(e);
+        }
+    });
+
+    /**
+     * Add a new channel to the left sidebar
+     * @param {Object} channel - contains _id, name, description...
+     */
+    function addChannelToList(channel) {
+        const channelList = document.querySelector('.channel-list');
+        if (!channelList) {
+            console.error('Channel list container not found');
+            return;
+        }
+
+        // Create channel link container
+        const channelLink = document.createElement('div');
+        channelLink.className = 'channel-link';
+        channelLink.style.textDecoration = 'none';
+        channelLink.style.color = '#dcddde';
+        channelLink.setAttribute('data-channel-id', channel._id);
+
+        // Create channel element
+        const channelElement = document.createElement('div');
+        channelElement.className = 'channel';
+        channelElement.setAttribute('channel-data-id', channel._id);
+
+        // Create channel content
+        channelElement.innerHTML = `
+            <div class="channel-icon">#</div>
+            <div class="channel-info">
+                <h4>${channel.name}</h4>
+                <p>Latest message here...</p>
+            </div>
+            <div class="channel-meta">
+                <span class="time">Just now</span>
+                <span class="unread">0</span>
+            </div>
+        `;
+
+        channelLink.addEventListener('click', () => {
+            // Remove active class from all channels
+            document.querySelectorAll('.channel').forEach(ch => {
+                ch.classList.remove('active');
+            });
+
+            // Add active class to clicked channel
+            channelElement.classList.add('active');
+
+            joinChannel(channel._id);
+        });
+
+        // Assemble and insert the new channel
+        channelLink.appendChild(channelElement);
+        channelList.insertAdjacentElement('afterbegin', channelLink);
+    }
+
+    socket.on('channel created', (data) => {
+        addChannelToList(data);
+    });
+
     // If server send errors. Listen to it
     socket.on('join-error', (msg) => {
         console.log(msg);
     });
-
-    /**
-     * Search for channels
-     */
-    // searchBoxChannel.addEventListener('input', (e) => {
-    //     if (searchTimeout) {
-    //         clearTimeout(searchTimeout);
-    //     }
-
-    //     searchTimeout = setTimeout(() => {
-    //         const term = e.target.value.trim();
-    //         if (term.length >= 0) {
-    //             if (socket.connected) {
-    //                 console.log(term);
-    //                 socket.emit('search channel', term, function(response) {
-    //                     if (response === 'ok') {
-    //                         console.log('ok');
-    //                     }
-    //                 });
-    //             } else {
-    //                 console.log('socket is not connected');
-    //             }
-    //         }
-    //     }, 300);
-    // });
-
-    /**
-     * Receive results (channels list after search) from server
-     */
-    socket.on('search channels results', (channels) => {
-        const channelList = document.querySelector('.channel-list');
-
-        channelList.innerHTML = '';
-        channels.forEach((channel) => {
-            const channelElement = document.createElement('div');
-
-            channelElement.className = 'channel';
-            channelElement.innerHTML = `
-               <a style="text-decoration: none; color: #dcddde" href="/channel/${channel._id}" 
-                   class="channel-link" data-channel-id="${channel._id}">
-                   <div class="channel" 
-                       channel-data-id="${channel._id}">
-                       <div class="channel-icon">#</div>
-                       <div class="channel-info">
-                           <h4> ${channel.name} </h4>
-                            <p>Lastest message here...</p>
-                       </div>
-                       <div class="channel-meta">
-                           <span class="time">12:30</span>
-                            <span class="unread"> ${channel.messageCount} </span>
-                       </div>
-                   </div>
-               </a>
-            `;
-            channelList.appendChild(channelElement);
-        })
-    })
 
     const joinedChannels = new Set();
 
@@ -206,10 +360,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // });
     document.querySelectorAll('.channel-link').forEach(link => {
         link.addEventListener('click', function (e) {
+            console.log('channel selected from channel-link');
             e.preventDefault();
 
             const channelId = this.dataset.channelId;
-            console.log(channelId);
 
             // remove active class from all channel
             document.querySelectorAll('.channel').forEach(ch =>
@@ -232,6 +386,8 @@ document.addEventListener('DOMContentLoaded', () => {
      * Receive result from channel
      */
     socket.on('channel selected', (data) => {
+        console.log(data);
+        console.log('channel selected');
         const {messages, channel, memberCount} = data;
         currentChannel = channel;
         renderChatArea(messages, channel, memberCount);
@@ -395,6 +551,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
 
+    function showSuccessToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'success-toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+
     function showErrorToast(message) {
         const toast = document.createElement('div');
         toast.className = 'error-toast';
@@ -426,7 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (response?.status === 'ok') {
                                 resolve(response);
                             } else {
-                                // showErrorToast("error");
+                                showErrorToast("There something went wrong");
                                 reject(new Error(response?.message));
                             }
                         });
@@ -660,38 +827,6 @@ document.addEventListener('DOMContentLoaded', () => {
             socket.disconnect();
         }
     });
-
-    // messagesContainer.addEventListener('contextmenu', (e) => {
-    //     e.preventDefault();
-    //     // Find the closest div that near messages, that is message
-    //     const messageElement = e.target.closest('.message');
-    //     if (!messageElement) return;
-
-    //     const messageId = messageElement.dataset.messageId;
-    //     const senderId = messageElement.dataset.senderId;
-
-    //     if (currentUserId !== senderId) {
-    //         return;
-    //     }
-
-    //     contextMenu.style.display = 'block';
-    //     contextMenu.style.left = `${e.pageX}px`;
-    //     contextMenu.style.top = `${e.pageY}px`;
-
-    //     // Set dataset for later use
-    //     contextMenu.dataset.messageId = messageId;
-    // });
-
-
-    // contextMenu.addEventListener('click', (e) => {
-    //     const action = e.target.dataset.action;
-    //     const messageId = contextMenu.dataset.messageId;
-
-    //     if (action === 'delete' && messageId) {
-    //         socket.emit('delete message',  { messageId });
-    //     }
-    //     contextMenu.style.display = 'none';
-    // });
 
     socket.on('conversation history', ({conversation, messages}) => {
         console.log(conversation);

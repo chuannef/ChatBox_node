@@ -124,6 +124,24 @@ export function initializeSocket(server) {
 
         await message.save();
 
+        const userChannel = await UserChannel.findOne({
+          userId: socket.user._id,
+          channelId: channelId,
+        });
+        if (!userChannel) {
+          const newUserChannel = new UserChannel({
+            userId: socket.user._id,
+            channelId: channelId,
+            joinedAt: new Date(),
+          });
+
+          await newUserChannel.save();
+          await Channel.findByIdAndUpdate(channelId, {
+              $push: { participants: newUserChannel._id }
+          });
+
+        }
+
         const messageData = {
           _id: message._id,
           content: message.content,
@@ -210,7 +228,6 @@ export function initializeSocket(server) {
           console.log(`Leaving room: ${room}`);
           socket.leave(room);
         });
-        console.log(socket.rooms);
 
         const channel = await Channel.findById(channelId);
 
@@ -266,16 +283,18 @@ export function initializeSocket(server) {
       }
     });
 
-    socket.on('search channel', async (term, callback) => {
+    socket.on('search channels', async (term, callback) => {
       try {
         const channels = await Channel.aggregate([
           ...(term && term.length > 0 ? [
+            // Match the search `term`
             {
               $match: {
                 name: { $regex: term, $options: 'i' }
               }
             },
           ] : []),
+          // Look for latest message
           {
             $lookup: {
               from: 'messages',
@@ -324,14 +343,88 @@ export function initializeSocket(server) {
         ]);
 
         if (typeof callback === 'function') {
-          callback('ok');
+          callback( { status: 'ok', message: 'Search response from server' });
         }
+
         socket.emit('search channels results', channels);
+
       } catch (e) {
         console.error(e);
       }
     });
 
+    socket.on('create channel', async (data, callback) => {
+      try {
+
+        const channelName = data.name.trim();
+        if (!data || !data.name) {
+          return callback({
+            status: 'error',
+            error: 'Invalid data'
+          });
+        }
+
+        if (!/^[a-z0-9-_]+$/.test(channelName)) {
+          // Invalid channel name
+          return callback({
+            status: 'error',
+            error: 'Channel name can only contain lowercase letters, numbers, hyphens, and underscores'
+          });
+        }
+
+        const existingChannel = await Channel.findOne({ channelName });
+        if (existingChannel) {
+          return callback({
+            status: 'error',
+            error: 'Channel name already exists'
+          });
+        }
+
+        const newChannel = new Channel({
+          name: channelName,
+          description: data.description,
+          participants: [],
+          createdAt: new Date(),
+        });
+
+        await newChannel.save();
+
+        // Create user and channel relationship
+        const userChannel = new UserChannel({
+          userId: socket.user._id,
+          channelId: newChannel._id,
+          role: 'admin',
+          joinedAt: new Date(),
+        });
+
+        await userChannel.save();
+
+        await Channel.findByIdAndUpdate(
+          newChannel._id,
+          { $push: { participants: userChannel._id } }
+        );
+
+        io.emit('channel created', {
+          _id: newChannel._id,
+          name: newChannel.name,
+          description: newChannel.description,
+          messageCount: 0,
+        });
+
+        callback({
+            status: 'ok',
+            channel: {
+                _id: newChannel._id,
+                name: newChannel.name,
+                description: newChannel.description
+            },
+            message: 'A new channel created successfully'
+        });
+
+      } catch (e) {
+        console.error(e);
+      }
+    });
 
     socket.on('delete message', async (data, callback) => {
       try {

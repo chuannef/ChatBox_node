@@ -15,7 +15,8 @@ class IndexController {
     try {
       // const channels = await Channel.find();
       const controller = new IndexController();
-      const channels = await controller.getChannels();
+      const channels = await controller.getChannels(user.id);
+      console.log(channels);
 
       return res.render('index', { username: user.username, 
         user_id: user.id,
@@ -25,36 +26,144 @@ class IndexController {
       console.error(e);
       return;
     }
+  }
 
-      // const users = await controller.getUsers(user.id);
+  async getChannels(userId) {
+    const channels = await Channel.aggregate([
+      // First get channels where user is a participant
+      {
+        $lookup: {
+          from: 'userchannels',
+          let: { channelId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$channelId', '$$channelId'] },
+                    { $eq: ['$userId', new mongoose.Types.ObjectId(userId)] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: 'userChannelRelation'
+        }
+      },
+      // Only include channels where user has a relationship
+      {
+        $match: {
+          'userChannelRelation.0': { $exists: true }
+        }
+      },
+      // Get channel creator info
+      {
+        $lookup: {
+          from: 'userchannels',
+          let: { channelId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$channelId', '$$channelId'] },
+                    { $eq: ['$role', 'admin'] } // Admin is the one who created this
+                  ]
+                }
+              }
+            },
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'userId',
+                foreignField: '_id',
+                as: 'creator'
+              }
+            },
+            { $unwind: '$creator' }
+          ],
+          as: 'channelCreator'
+        }
+      },
+      // Get latest message
+      {
+        $lookup: {
+          from: 'messages',
+          localField: '_id',
+          foreignField: 'channel',
+          pipeline: [
+            { $sort: { sentAt: -1 } },
+            { $limit: 1 },
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'sender',
+                foreignField: '_id',
+                as: 'sender'
+              }
+            },
+            { $unwind: '$sender' }
+          ],
+          as: 'latestMessage'
+        }
+      },
+      // Get message count for last 24 hours
+      {
+        $lookup: {
+          from: 'messages',
+          localField: '_id',
+          foreignField: 'channel',
+          pipeline: [
+            {
+              $match: {
+                sentAt: {
+                  $gt: new Date(Date.now() - 24 * 60 * 60 * 1000)
+                }
+              }
+            },
+            { $count: 'count' }
+          ],
+          as: 'messageCount'
+        }
+      },
+      // Format the output
+      {
+        $addFields: {
+          latestMessage: { $arrayElemAt: ['$latestMessage', 0] },
+          messageCount: {
+            $ifNull: [
+              { $arrayElemAt: ['$messageCount.count', 0] },
+              0
+            ]
+          },
+          userRole: { $arrayElemAt: ['$userChannelRelation.role', 0] },
+          creator: {
+            $ifNull: [
+              { 
+                $let: {
+                  vars: {
+                    creator: { $arrayElemAt: ['$channelCreator.creator', 0] }
+                  },
+                  in: {
+                    _id: '$$creator._id',
+                    username: '$$creator.username'
+                  }
+                }
+              },
+              null
+            ]
+          }
+        }
+      },
+      // Sort by latest message
+      {
+        $sort: {
+          'latestMessage.sentAt': -1
+        }
+      }
+    ]);
 
-    //   const firstChannel = channels[0];
-
-    //   // <!-- <div class="channel <%= currentChannelId === channel._id.toString() ? 'active' : '' %>" -->
-    //   return res.render('index', 
-    //     { username: user.username, 
-    //       user_id: user.id, 
-    //       channels: channels, 
-    //       messages: null,
-    //       currentChannel: firstChannel,
-    //       currentChannelId: firstChannel._id,
-    //       users: users && users.length > 0 ? users : [],
-    //       channelUsers: null 
-    //     });
-
-    // } catch (e) {
-    //   console.error(e);
-    //   return res.render('index', { 
-    //     message: 'Something went wrong',
-    //     username: user.username,
-    //     user_id: user.id,
-    //     channels: [],
-    //     messages: null,
-    //     currentChannel: null,
-    //     currentChannelId: null,
-    //     channelUsers: null
-    //   });
-    // }
+    return channels;
   }
 
   async getUsers(currentUserId) {
@@ -106,62 +215,6 @@ class IndexController {
       console.error('Error getting users:', error);
       throw error;
     }
-  }
-
-  async getChannels() {
-    const channels = await Channel.aggregate([
-      {
-        $lookup: {
-          from: 'messages',
-          localField: '_id',
-          foreignField: 'channel',
-          pipeline: [
-            { $sort: { sentAt: -1 } },
-            { $limit: 1 },
-            {
-              $lookup: {
-                from: 'users',
-                localField: 'sender',
-                foreignField: '_id',
-                as: 'sender'
-              }
-            },
-            { $unwind: '$sender' }
-          ],
-          as: 'latestMessage'
-        }
-      },
-      {
-        $lookup: {
-          from: 'messages',
-          localField: '_id',
-          foreignField: 'channel',
-          pipeline: [
-            { 
-              $match: { 
-                sentAt: { 
-                  $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
-                } 
-              } 
-            },
-            { $count: 'count' }
-          ],
-          as: 'messageCount'
-        }
-      },
-      {
-        $addFields: {
-          latestMessage: { $arrayElemAt: ['$latestMessage', 0] },
-          messageCount: { 
-            $ifNull: [
-              { $arrayElemAt: ['$messageCount.count', 0] },
-              0
-            ]
-          }
-        }
-      }
-    ]);
-    return channels;
   }
 
 
